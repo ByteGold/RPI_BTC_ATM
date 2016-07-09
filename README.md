@@ -20,6 +20,6 @@ You don't have to buy this, and enough output can come from misc. LEDs that are 
 LEDs are simple to use on the programming side, and can be used as the de-facto debugging tool when there is no screen present. All you need to do is solder it to the GPIO headers and you should be set.
 
 ##TODO
-*Use the BV20 bill acceptor
-*Use an NFC/RFID reader for Bitcoin addresses
-*Make a unified ATM case that can be 3D printed
+- Use the BV20 bill acceptor
+- Use an NFC/RFID reader for Bitcoin addresses
+- Make a unified ATM case that can be 3D printed
