@@ -34,8 +34,8 @@ static void init(){
 	      << "--help\t\tdisplay this help screen" << std::endl;
     exit(0);
   }
-  gpio::init();
-  if(search_for_argv("--usd")){
+  gpio::init(); // does it's own argv checking
+  if(search_for_argv("--usd") != -1){
     currency = CURRENCY_USD;
   }
   if(search_for_argv("--ch-926-drv") != -1){
@@ -65,7 +65,8 @@ int main(int argc_, char **argv_){
   while(true){
     for(unsigned int i = 0;i < drivers.size();i++){
       if(drivers[i]->count != 0){
-	LOCK_RUN(drivers[i]->lock,std::cout << "$" << (float)(((float)drivers[i]->count)/100.0) << std::endl;drivers[i]->count = 0;);
+	std::cout << "$" << (float)(((float)drivers[i]->count)/100.0) << std::endl;
+	//LOCK_RUN(drivers[i]->lock,drivers[i]->count = 0;);
       }
     }
   }
