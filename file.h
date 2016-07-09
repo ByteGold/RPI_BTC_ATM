@@ -6,5 +6,5 @@
 namespace file{
 	void write_file(std::string file, std::string data);
 	std::string read_file(std::string file);
-};
+}
 #endif

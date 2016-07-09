@@ -6,7 +6,7 @@ class driver_t{
  public:
   int count;
   std::mutex lock;
-  std::function<int(int*)> init;
+  std::function<int()> init;
   std::function<int()> close;
   std::function<int(int*)> run;
   driver_t();

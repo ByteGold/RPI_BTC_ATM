@@ -13,6 +13,6 @@ namespace gpio{
 	char get_dir(int pin);
 	char set_dir(int pin, int dir);
 	char init();
-};
+}
 
 #endif

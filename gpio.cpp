@@ -6,11 +6,11 @@ static int gpio_count = 0;
 
 #define DISABLED_GPIO() if(search_for_argv("--no-gpio") != -1) return 0;
 
-std::string gen_gpio_val_file(int pin){
+static std::string gen_gpio_val_file(int pin){
   return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/value";
 }
 
-std::string gen_gpio_dir_file(int pin){
+static std::string gen_gpio_dir_file(int pin){
   return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/direction";
 }
 
@@ -22,6 +22,7 @@ char gpio::get_val(int pin){
 char gpio::set_val(int pin, bool val){
   DISABLED_GPIO();
   file::write_file(gen_gpio_val_file(pin), std::string({val, 0}));
+  return 0;
 }
 
 char gpio::get_dir(int pin){
@@ -32,6 +33,7 @@ char gpio::get_dir(int pin){
 char gpio::set_dir(int pin, int dir){
   DISABLED_GPIO();
   file::write_file(gen_gpio_dir_file(pin), ((dir == GPIO_IN) ? "in" : "out"));
+  return 0;
 }
 
 char gpio::init(){
@@ -55,4 +57,5 @@ char gpio::init(){
     print("Using something that isn't a Raspberry Pi", PRINT_NOTICE);
     break;
   }
+  return 0;
 }

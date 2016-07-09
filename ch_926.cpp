@@ -23,20 +23,22 @@ static std::array<int, 5> value_table = {0, 1, 5, 10, 25};
 //sane default value, no need for bounds checking because the acceptor shouldn't
 //return a pulse set it wasn't specifically programmed for, and the proper table should be set
 
-int ch_926_init(int *value){
+int ch_926_init(){
   gpio_pins[CH_926_GPIO_IN] = 1;
   gpio_pins[CH_926_GPIO_POWER] = 2;
   gpio::set_dir(gpio_pins[CH_926_GPIO_POWER], GPIO_OUT); // should be enough
   gpio::set_dir(gpio_pins[CH_926_GPIO_IN], GPIO_IN);
   //TODO: add other currencies
+  return 0;
 }
 
 int ch_926_close(){
   //possibly reset the GPIO pins to input?
+  return 0;
 }
 
 int ch_926_run(int *count){
-  int pulse_count = 0;
+  unsigned long int pulse_count = 0;
   if(search_for_argv("--ch-926-debug") != -1){
     std::cout << "pulse count:";
     std::cin >> pulse_count;
@@ -49,7 +51,5 @@ int ch_926_run(int *count){
     }
   }
   *count += value_table[pulse_count];
-}
-
-int ch_926_set_count_ptr(){
+  return 0;
 }

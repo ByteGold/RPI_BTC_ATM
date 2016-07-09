@@ -8,14 +8,14 @@
 int argc;
 char **argv;
 
-int currency = CURRENCY_USD;
+static int currency = CURRENCY_USD;
 
-std::vector<driver_t*> drivers;
-std::thread driver_run_thread;
+static std::vector<driver_t*> drivers;
+static std::thread driver_run_thread;
 
 static void driver_run(){
   while(true){
-    for(int i = 0;i < drivers.size();i++){
+    for(unsigned int i = 0;i < drivers.size();i++){
       LOCK_RUN(drivers[i]->lock, drivers[i]->run(&drivers[i]->count));
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(5)); // reasonable
@@ -30,10 +30,14 @@ static void init(){
 	      << "--priv-key\t\tfile containing the private key for withdrawals" << std::endl
 	      << "--markup-rate\t\trate to mark up the prices (default is 0)" << std::endl
 	      << "--no-gpio\t\tdisable gpio headers (renders program useless)" << std::endl
+	      << "--usd\t\tset the local currency to the united states dollar" << std::endl
 	      << "--help\t\tdisplay this help screen" << std::endl;
     exit(0);
   }
   gpio::init();
+  if(search_for_argv("--usd")){
+    currency = CURRENCY_USD;
+  }
   if(search_for_argv("--ch-926-drv") != -1){
     print("Enabling CH 926 driver", P_NOTICE);
     driver_t *ch_926 = new driver_t;
@@ -42,14 +46,14 @@ static void init(){
     ch_926->run = ch_926_run;
     drivers.push_back(ch_926);
   }
-  for(int i = 0;i < drivers.size();i++){
-    drivers[i]->init(&drivers[i]->count);
+  for(unsigned int i = 0;i < drivers.size();i++){
+    drivers[i]->init();
   }
   driver_run_thread = std::thread(driver_run);
 }
 
 static void close(){
-  for(int i = 0;i < drivers.size();i++){
+  for(unsigned int i = 0;i < drivers.size();i++){
     drivers[i]->close();
   }
 }
@@ -59,11 +63,12 @@ int main(int argc_, char **argv_){
   argv = argv_;
   init();
   while(true){
-    for(int i = 0;i < drivers.size();i++){
+    for(unsigned int i = 0;i < drivers.size();i++){
       if(drivers[i]->count != 0){
 	LOCK_RUN(drivers[i]->lock,std::cout << "$" << (float)(((float)drivers[i]->count)/100.0) << std::endl;drivers[i]->count = 0;);
       }
     }
   }
   close();
+  return 0;
 }

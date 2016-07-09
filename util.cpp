@@ -23,6 +23,7 @@ static std::string print_level_text(int level){
   case P_CRIT:
     return "[CRITICAL]";
   }
+  throw std::runtime_error("invalid print level");
 }
 
 void print(std::string data, int level){
