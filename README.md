@@ -9,7 +9,7 @@ You just need a computer with GPIO headers and a connection to the Internet. It 
 ####Webcam
 As long as Linux recognizes it as a webcam, it should work. The only use this webcam has is scanning QR codes for Bitcoin addresses, so 640x480 is a sane minimum resolution.
 ####CH-926 coin acceptor
-This is a popular programmable coin acceptor that can be bought on the cheap. There is a pre-programmed lookup table for the pulses (100ms, 1 pulse is a penny, 2, is a nickle, 3, is a dime, 4 is a quarter). It supports a maximum of 8 different coins (or so I heard). Since the power draw is 12V @ 55mA, there should be enough power provided by the GPIO pins to run this device.
+This is a popular programmable coin acceptor that can be bought on the cheap. There is a pre-programmed lookup table for the pulses (100ms, 1 pulse is a penny, 2, is a nickel, 3, is a dime, 4 is a quarter). It supports a maximum of 8 different coins (or so I heard). Since the power draw is 12V @ 55mA, there should be enough power provided by the GPIO pins to run this device.
 ####Internet connection
 For the sake of simplicity, wired is the best option. However, wireless, when configured properly, should work just as well.
 
