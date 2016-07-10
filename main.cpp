@@ -4,17 +4,21 @@
 #include "gpio.h"
 #include "driver.h"
 #include "ch_926.h"
+#include "json_rpc.h"
 
 int argc;
 char **argv;
 
+static bool running = true;
 static int currency = CURRENCY_USD;
-
 static std::vector<driver_t*> drivers;
 static std::thread driver_run_thread;
 
+static void init();
+static void terminate();
+
 static void driver_run(){
-  while(true){
+  while(running){
     for(unsigned int i = 0;i < drivers.size();i++){
       LOCK_RUN(drivers[i]->lock, drivers[i]->run(&drivers[i]->count));
     }
@@ -22,7 +26,29 @@ static void driver_run(){
   }
 }
 
+static void signal_handler(int signal){
+  switch(signal){
+  case SIGTERM:
+    print("Caught signal SIGTERM, terminating", P_CRIT);
+    break;
+  case SIGKILL:
+    print("Caught signal SIGKILL, terminating", P_CRIT);
+    break;
+  case SIGINT:
+    print("Caught signal SIGINT, terminating", P_CRIT);
+    break;
+  default:
+    break; // make this more complex
+  }
+  running = false;
+  terminate();
+  exit(0);
+}
+
 static void init(){
+  signal(SIGTERM, signal_handler);
+  signal(SIGINT, signal_handler);
+  signal(SIGKILL, signal_handler);
   if(search_for_argv("--help") != -1){
     std::cout << "rpi_btc_atm: raspberry pi based bitcoin atm" << std::endl
 	      << "usage:" << std::endl
@@ -52,24 +78,31 @@ static void init(){
   driver_run_thread = std::thread(driver_run);
 }
 
-static void close(){
+static void terminate(){
+  if(running){
+    print("Exited main loop while running, terminating safely from here", P_CRIT);
+    running = false; // stop threads safely
+  }
   for(unsigned int i = 0;i < drivers.size();i++){
     drivers[i]->close();
   }
+  driver_run_thread.join();
 }
 
 int main(int argc_, char **argv_){
   argc = argc_;
   argv = argv_;
   init();
-  while(true){
+  while(running){
     for(unsigned int i = 0;i < drivers.size();i++){
       if(drivers[i]->count != 0){
-	std::cout << "$" << (float)(((float)drivers[i]->count)/100.0) << std::endl;
-	//LOCK_RUN(drivers[i]->lock,drivers[i]->count = 0;);
+  	std::cout << "$" << (float)(((float)drivers[i]->count)/100.0) << std::endl;
+  	LOCK_RUN(drivers[i]->lock,drivers[i]->count = 0;);
       }
     }
+    running = false;
   }
-  close();
+  json_rpc::send_cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
+  terminate();
   return 0;
 }

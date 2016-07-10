@@ -15,6 +15,7 @@
 #include "iostream"
 #include "execinfo.h"
 extern int search_for_argv(std::string);
+extern std::string get_argv(int a);
 extern void print(std::string data, int level);
 #define LOCK_RUN(a, b) a.lock();b;a.unlock();
 #endif

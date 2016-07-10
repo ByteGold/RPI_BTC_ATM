@@ -8,6 +8,8 @@
 #include "thread"
 #include "vector"
 #include "chrono"
+#include "signal.h"
+#include "unistd.h"
 #define CURRENCY_USD 1 // only supported one
 extern int argc;
 extern char** argv;

@@ -1,6 +1,9 @@
 Keep in mind that the software isn't in a working state yet, and the following are v1.0 goals.
 #RPI_BTC_ATM
-This is a open-source Bitcoin ATM that can be built for under $100 dollars. It uses the CH-926 coin acceptor currently, but other forms of payment are possible in the future. This ATM is meant for small deposits and withdrawals, and is meant to be kept on a countertop.
+This is a open-source Bitcoin ATM that can be built for under $100 dollars. It uses the CH-926 coin acceptor currently, but other forms of payment are possible in the future. This ATM is meant for small deposits, and is meant to be kept on a countertop.
+
+##Dependencies
+- bitcoind
 
 ##Parts
 ###You are going to need
