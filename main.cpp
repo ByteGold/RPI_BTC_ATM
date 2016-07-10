@@ -89,10 +89,18 @@ static void terminate(){
   driver_run_thread.join();
 }
 
+static void test_code(){
+  json_rpc::send_cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
+}
+
 int main(int argc_, char **argv_){
   argc = argc_;
   argv = argv_;
   init();
+  if(search_for_argv("--test-code")){
+    test_code();
+    running = false;
+  }
   while(running){
     for(unsigned int i = 0;i < drivers.size();i++){
       if(drivers[i]->count != 0){
@@ -102,7 +110,6 @@ int main(int argc_, char **argv_){
     }
     running = false;
   }
-  json_rpc::send_cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
   terminate();
   return 0;
 }
