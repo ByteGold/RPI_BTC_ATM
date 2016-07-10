@@ -18,6 +18,7 @@ This is a popular programmable coin acceptor that can be bought on the cheap. It
 - 2 pulses = nickel
 - 3 pulses = dime
 - 4 pulses = quarter
+
 ####Internet connection
 For the sake of simplicity, wired is the best option. However, wireless, when configured properly, should work just as well.
 
