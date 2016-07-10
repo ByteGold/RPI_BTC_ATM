@@ -3,7 +3,8 @@ Keep in mind that the software isn't in a working state yet, and the following a
 This is a open-source Bitcoin ATM that can be built for under $100 dollars. It uses the CH-926 coin acceptor currently, but other forms of payment are possible in the future. This ATM is meant for small deposits, and is meant to be kept on a countertop.
 
 ##Dependencies
-- bitcoind
+####bitcoind
+You should run it with -prune=550 to keep disk usage low. Set -rpcusername and -rpcpassword properly and use the --json-rpc-username and --json-rpc-password fields properly
 
 ##Parts
 ###You are going to need
@@ -12,7 +13,11 @@ You just need a Linux-based computer with GPIO headers and a connection to the I
 ####Webcam
 As long as it is recognized as a webcam, it should work. The only use this webcam has is scanning QR codes for Bitcoin addresses, so 640x480 is a sane minimum resolution.
 ####CH-926 coin acceptor
-This is a popular programmable coin acceptor that can be bought on the cheap. There is a pre-programmed lookup table for the pulses (100ms, 1 pulse is a penny, 2, is a nickel, 3, is a dime, 4 is a quarter). It supports a maximum of 8 different coins (or so I heard). Since the power draw is 12V @ 55mA, an external power supply is needed (can be derived from a 2.1A USB brick somehow, look into implementation-specific manuals for that).
+This is a popular programmable coin acceptor that can be bought on the cheap. It supports a maximum of 8 different coins (or so I heard). Since the power draw is 12V @ 55mA, an external power supply is needed (can be derived from a 2.1A USB brick somehow, look into implementation-specific manuals for that). Here is the pre-programmed list (100ms):
+- 1 pulse = penny
+- 2 pulses = nickel
+- 3 pulses = dime
+- 4 pulses = quarter
 ####Internet connection
 For the sake of simplicity, wired is the best option. However, wireless, when configured properly, should work just as well.
 

@@ -3,7 +3,10 @@
 #include "json_rpc.h"
 
 #define DEFAULT_NODE_PORT 8332
-static int default_node_port = DEFAULT_NODE_PORT;
+static int json_rpc_port = DEFAULT_NODE_PORT;
+
+static std::string json_rpc_username;
+static std::string json_rpc_password;
 
 /*
 This interfaces with a Bitcoin node installed on the Raspberry Pi. The Bitcoin
@@ -50,17 +53,9 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
   print("json_rpc_curl_writeback received " + (std::string)ptr, P_DEBUG);
 }
 
-int json_rpc::send_cmd(std::string method, std::vector<std::string> params, int id, std::string ip, int port){
-  std::string data = json_set_var("method", method) + ",";
-  if(params.size() != 0){
-    data += json_set_var("params", params) + ",";
-  }
-  data += json_set_var("id", id);
-  data = json_wrap_with_braces(data);
-  print("JSON_RPC query:"+data, P_DEBUG);
+static int json_rpc_send_query(std::string url, std::string json_query){
   CURL *curl = curl_easy_init();
-  curl_easy_setopt(curl, CURLOPT_URL, "http://username:password1@127.0.0.1");
-  curl_easy_setopt(curl, CURLOPT_PORT, 8332);
+  curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
   curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.size());
   struct curl_slist *headers = NULL;
@@ -74,6 +69,27 @@ int json_rpc::send_cmd(std::string method, std::vector<std::string> params, int 
   curl_slist_free_all(headers);
   headers = NULL;
   curl = NULL;
+}
+
+int json_rpc::send_cmd(std::string method, std::vector<std::string> params, int id, std::string ip, int port){
+  if(search_for_argv("--json-rpc-username") != -1){
+    json_rpc_username = get_argv(search_for_argv("--json-rpc-username")+1);
+  }
+  if(search_for_argv("--json-rpc-password") != -1){
+    json_rpc_password = get_argv(search_for_argv("--json-rpc-password")+1);
+  }
+  if(search_for_argv("--json-rpc-port") != -1){
+    json_rpc_port = get_argv(search_for_argv("--json-rpc-port")+1);
+  }
+  std::string data;
+  data += json_set_var("method", method) + ",";
+  if(params.size() != 0){
+    data += json_set_var("params", params) + ",";
+  }
+  data += json_set_var("id", id);
+  data = json_wrap_with_braces(data);
+  print("JSON_RPC query:"+data, P_DEBUG);
+  json_rpc_send_query("http://"+json_rpc_username+":"+json_rpc_password+"@127.0.0.1:8332", data);
   return 0;
 }
 
