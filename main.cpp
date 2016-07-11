@@ -6,10 +6,10 @@
 #include "ch_926.h"
 #include "json_rpc.h"
 
+bool running = true;
 int argc;
 char **argv;
 
-static bool running = true;
 static int currency = CURRENCY_USD;
 static std::vector<driver_t*> drivers;
 static std::thread driver_run_thread;
@@ -108,7 +108,6 @@ int main(int argc_, char **argv_){
   	LOCK_RUN(drivers[i]->lock,drivers[i]->count = 0;);
       }
     }
-    running = false;
   }
   terminate();
   return 0;

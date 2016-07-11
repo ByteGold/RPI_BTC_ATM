@@ -11,6 +11,7 @@
 #include "signal.h"
 #include "unistd.h"
 #define CURRENCY_USD 1 // only supported one
+extern bool running;
 extern int argc;
 extern char** argv;
 #endif
