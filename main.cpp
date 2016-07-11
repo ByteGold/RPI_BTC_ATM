@@ -90,14 +90,14 @@ static void terminate(){
 }
 
 static void test_code(){
-  json_rpc::send_cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
+  json_rpc::cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
 }
 
 int main(int argc_, char **argv_){
   argc = argc_;
   argv = argv_;
   init();
-  if(search_for_argv("--test-code")){
+  if(search_for_argv("--test-code") != -1){
     test_code();
     running = false;
   }

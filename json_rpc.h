@@ -3,8 +3,19 @@
 #include "cstdio"
 #include "SDL2/SDL_net.h"
 #include "curl/curl.h"
+#define DEFAULT_NODE_PORT 8332
+#define DEFAULT_NODE_IP "127.0.0.1"
+#define JSON_PARENTHESIS(data) ((std::string)("\""+data+"\""))
+#define JSON_BRACES(data) ((std::string)("{"+data+"}"))
+#define JSON_BRACKETS(data) ((std::string)("["+data+"]"))
+struct json_rpc_resp_t{
+  std::string result;
+  std::string error;
+  int id;
+};
 namespace json_rpc{
-  int send_cmd(std::string method, std::vector<std::string> params, int id, std::string ip, int port);
-  int recv_resp(std::string *result, std::string *error, int *id);
+  int cmd(std::string method, std::vector<std::string> params, int id, std::string ip = DEFAULT_NODE_IP, int port = DEFAULT_NODE_PORT);
+  int resp(std::string *result, std::string *error, int id);
 }
+extern std::string json_set_var(std::string type, std::vector<std::string> data);
 #endif
