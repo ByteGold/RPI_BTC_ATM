@@ -29,11 +29,13 @@ public:
   int get_blink();
 };
 namespace gpio{
-	char get_val(int pin);
-	char set_val(int pin, bool val);
-	char get_dir(int pin);
-	char set_dir(int pin, int dir);
-	char init();
+  void add_pin(int pin);
+  void del_pin(int pin);
+  char get_val(int pin);
+  char set_val(int pin, bool val);
+  char get_dir(int pin);
+  char set_dir(int pin, int dir);
+  char init();
 }
 
 #endif

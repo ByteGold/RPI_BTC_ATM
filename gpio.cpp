@@ -13,14 +13,14 @@ static std::string gen_gpio_val_file(int pin){
   if(pin > gpio_count || pin < 0){
     throw std::runtime_error("gpio pin invalid");
   }
-  return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/value";
+  return (std::string)"/sys/class/gpio/gpio/" + std::to_string(pin) + (std::string)"/value";
 }
 
 static std::string gen_gpio_dir_file(int pin){
   if(pin > gpio_count || pin < 0){
     throw std::runtime_error("gpio pin invalid");
   }
-  return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/direction";
+  return (std::string)"/sys/class/gpio/gpio/" + std::to_string(pin) + (std::string)"/direction";
 }
 
 char gpio::get_val(int pin){
@@ -92,7 +92,6 @@ static void gpio_run(){
   }
 }
 
-
 char gpio::init(){
   DISABLED_GPIO();
   try{
@@ -116,6 +115,35 @@ char gpio::init(){
   }
   gpio_thread = std::thread(gpio_run);
   return 0;
+}
+
+void gpio::add_pin(int pin){
+  LOCK_RUN(gpio_pins_lock, [](int pin){
+      int exist = 0;
+      for(unsigned int i = 0;i < gpio_pins.size();i++){
+	if(gpio_pins[i].get_pin() == pin){
+	  print("cannot add pin that is already in use", P_CRIT);
+	  exist = 1;
+	  break;
+	}
+      }
+      if(exist != 1){
+	gpio_pin_t pin_data;
+	pin_data.set_pin(pin);
+	gpio_pins.push_back(pin_data);
+      }
+    }(pin));
+}
+
+void gpio::del_pin(int pin){
+  LOCK_RUN(gpio_pins_lock, [](int pin){
+      for(unsigned int i = 0;i < gpio_pins.size();i++){
+	if(gpio_pins[i].get_pin() == pin){
+	  gpio_pins.erase(gpio_pins.begin()+i);
+	  break;
+	}
+      }
+    }(pin));
 }
 
 void gpio_pin_t::set_pin(int pin_){
@@ -151,7 +179,7 @@ int gpio_pin_t::get_blink(){
 }
 
 gpio_pin_t::gpio_pin_t(){
-  pin = 0;
+  pin = -1;
   power = 0;
   dir = 0;
   blink = 0;
