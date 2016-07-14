@@ -10,7 +10,7 @@
 #include "chrono"
 #include "signal.h"
 #include "unistd.h"
-#define CURRENCY_USD 1 // only supported one
+#define DEFAULT_THREAD_SLEEP 10
 extern bool running;
 extern int argc;
 extern char** argv;
