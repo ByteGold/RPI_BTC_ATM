@@ -163,8 +163,7 @@ void gpio::del_pin(int pin){
 }
 
 void gpio_pin_t::set_pin(int pin_){
-  system("echo \"" + std::to_string(pin_) "\" > /sys/class/gpio/export");
-  // needed to interface with GPIO pin
+  system_("echo \"" + std::to_string(pin_) + "\" > /sys/class/gpio/export");
   pin = pin_;
 }
 

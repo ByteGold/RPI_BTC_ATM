@@ -29,7 +29,7 @@ int qr::init(){
 // TODO: make or get a legit library for more flexibility
 
 int qr::gen(std::string str, std::string file){
-  system(("echo \""+ str +"\" | qr > " + file).c_str());
+  system_(("echo \""+ str +"\" | qr > " + file).c_str());
   return 0;
 }
 
@@ -39,7 +39,7 @@ std::string qr::read(std::string file){
 }
 
 int qr::close(){
-  system("pkill -9 zbarcam");
+  system_("pkill -9 zbarcam");
   pclose(qr_reader_file_desc);
   return 0;
 }

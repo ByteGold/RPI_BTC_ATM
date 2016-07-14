@@ -25,9 +25,20 @@ int tx::add_tx_out(tx_out_t transaction){
   return 0;
 }
 
-int tx::send_transaction_log(){
+static int auto_set_tx_fee(){
+  const int fee_size = (75*50)*(outputs.size()+2);
+  json_rpc::cmd("settxfee", {std::to_string(fee_size)}, SET_TX_FEE_ID);
+  return fee_size;
+}
+
+int tx::send_transaction_block(){
   // TODO: unlock the wallet for a second or two
-  set_tx_fee(1000);
+  int fee = auto_set_tx_fee();
+  print("transaction fee is " + std::to_string(fee), P_NOTICE);
+  if((fee/100000000)*get_btc_rate("USD") > .50){
+    print("transaction fee is too high, setting sane setting, force with --force-fee", P_ERR);
+    fee = .25/get_btc_rate("USD");
+  }
   if(outputs.size() == 1){
     json_rpc::cmd("sendtoaddress", {outputs[0].get_address(), std::to_string(outputs[0].get_satoshi()/100000000.0)}, SEND_ID);
     outputs.erase(outputs.begin()+0);
@@ -52,10 +63,9 @@ int tx::send_transaction_log(){
   return 0;
 }
 
-int tx::set_tx_fee(satoshi_t satoshi){
-  json_rpc::cmd("settxfee", {std::to_string(satoshi)}, SET_TX_FEE_ID);
-  return 0;
-}
+/*
+  TODO: save transactions to disk
+ */
 
 void tx_out_t::set_address(std::string address_){
   address = address_;
@@ -73,8 +83,9 @@ satoshi_t tx_out_t::get_satoshi(){
   return satoshi;
 }
 
-tx_out_t::tx_out_t(){
-  satoshi = 0;
+tx_out_t::tx_out_t(std::string address_, satoshi_t satoshi_){
+  address = address_;
+  satoshi = satoshi_;
 }
 
 tx_out_t::~tx_out_t(){

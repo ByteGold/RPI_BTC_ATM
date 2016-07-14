@@ -13,7 +13,7 @@ std::string file::read_file(std::string file){
   std::string retval;
   std::ifstream in(file);
   if(in.is_open() == false){
-    throw std::runtime_error((std::string)"Unable to ope file " + file);
+    throw std::runtime_error((std::string)"Unable to open file " + file);
   }
   std::string buffer;
   while(getline(in, buffer)){

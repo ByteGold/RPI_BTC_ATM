@@ -4,16 +4,18 @@
 #include "mutex"
 #include "string"
 
+#define TX_SIMPLE_FEE 5500 // std. fee for a one output transaction
+
 typedef uint64_t satoshi_t;
 typedef long double btc_t;
 
 struct tx_out_t{
-  tx_out_t();
-  ~tx_out_t();
 private:
   std::string address;
   satoshi_t satoshi;
 public:
+  tx_out_t(std::string address_, satoshi_t satoshi_);
+  ~tx_out_t();
   void set_address(std::string);
   std::string get_address();
   void set_satoshi(satoshi_t);
@@ -32,8 +34,7 @@ public:
 */
 
 namespace tx{
-  int send_transaction_log();
-  int set_tx_fee(satoshi_t satoshi);
+  int send_transaction_block();
   int add_tx_out(tx_out_t transaction);
 };
 #endif
