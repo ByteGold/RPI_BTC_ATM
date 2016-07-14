@@ -68,5 +68,8 @@ long double get_btc_rate(std::string currency){
 
 int system_(std::string str){
   print("system: " + str, P_DEBUG);
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  // this gives the kernel enough time to respond to GPIO events, the overhead
+  // isn't too big, so it doesn't really matter
   return system(str.c_str());
 }
