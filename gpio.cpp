@@ -92,7 +92,7 @@ static void gpio_run(){
   }
 }
 
-char gpio::init(){
+int gpio::init(){
   DISABLED_GPIO();
   try{
     while(true){
@@ -114,6 +114,11 @@ char gpio::init(){
     break;
   }
   gpio_thread = std::thread(gpio_run);
+  return 0;
+}
+
+int gpio::close(){
+  gpio_thread.join();
   return 0;
 }
 
@@ -144,6 +149,8 @@ void gpio::del_pin(int pin){
 	}
       }
     }(pin));
+
+  
 }
 
 void gpio_pin_t::set_pin(int pin_){

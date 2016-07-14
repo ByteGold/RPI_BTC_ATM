@@ -35,7 +35,8 @@ namespace gpio{
   char set_val(int pin, bool val);
   char get_dir(int pin);
   char set_dir(int pin, int dir);
-  char init();
+  int init();
+  int close();
 }
 
 #endif

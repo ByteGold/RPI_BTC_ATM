@@ -2,7 +2,9 @@
 #define QR_H
 #include "cstdlib"
 namespace qr{
-  void gen_qr_code(std::string str, std::string file);
-  std::string read_qr_code();
+  int init();
+  int close();
+  int gen(std::string str, std::string file);
+  std::string read(std::string file);
 }
 #endif
