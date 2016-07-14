@@ -17,5 +17,7 @@
 extern int search_for_argv(std::string);
 extern std::string get_argv(int a);
 extern void print(std::string data, int level);
+extern long double get_btc_rate(std::string currency);
+extern int system_(std::string str);
 #define LOCK_RUN(a, b) a.lock();b;a.unlock();
 #endif

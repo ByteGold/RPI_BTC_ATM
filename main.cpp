@@ -86,7 +86,7 @@ static void init(){
 
 static void terminate(){
   if(running){
-    print("Exited main loop while running, terminating safely from here", P_CRIT);
+    print("Exited main loop while running, terminating safely from here", P_ERR);
     running = false; // stop threads safely
   }
   for(unsigned int i = 0;i < drivers.size();i++){

@@ -52,3 +52,19 @@ std::string get_argv(int a){
 std::string get_argv_val(std::string a){
   return get_argv(search_for_argv(a));
 }
+
+long double get_btc_rate(std::string currency){
+  // 3 character code
+  if(currency == "USD" || currency == "usd"){
+    system("wget https://blockchain.info/q/24hrprice");
+    long double price = std::stold(file::read_file(24hrprice));
+    print("the price is " + std::to_string(price) + " per BTC", P_NOTICE);
+  }else{
+    print("your plebian currency isn't supported yet", P_CRIT);
+  }
+}
+
+int system_(std::string str){
+  print("system: " + str, P_DEBUG);
+  return system(str.c_str());
+}
