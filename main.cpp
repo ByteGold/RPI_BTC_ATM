@@ -64,7 +64,7 @@ static void init(){
   gpio::init();
   qr::init();
   if(search_for_argv("--currency") != -1){
-    currency = get_argv_val("--currency");
+    currency = get_argv(search_for_argv("--currency")+1);
   }else{
     throw std::runtime_error("no currency selected, set with --currency");
   }
