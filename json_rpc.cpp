@@ -10,8 +10,8 @@ static std::string json_rpc_password;
 static std::vector<json_rpc_resp_t> responses;
 
 /*
-This interfaces with a Bitcoin node installed on the Raspberry Pi. The Bitcoin
-node doesn't have to download the entire blockchain (pruned should work fine).
+  This interfaces with a Bitcoin node installed on the Raspberry Pi. The Bitcoin
+  node doesn't have to download the entire blockchain (pruned should work fine).
  */
 
 

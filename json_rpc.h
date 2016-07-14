@@ -1,7 +1,6 @@
 #ifndef JSON_RPC_H
 #define JSON_RPC_H
 #include "cstdio"
-#include "SDL2/SDL_net.h"
 #include "curl/curl.h"
 #define DEFAULT_NODE_PORT 8332
 #define DEFAULT_NODE_IP "127.0.0.1"
