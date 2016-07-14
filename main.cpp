@@ -111,6 +111,7 @@ int main(int argc_, char **argv_){
     test_code();
     running = false;
   }
+  print("entering main thread", P_NOTICE);
   while(running){
     for(unsigned int i = 0;i < drivers.size();i++){
       if(drivers[i]->count != 0){
