@@ -9,8 +9,9 @@ class driver_t{
   std::function<int()> init;
   std::function<int()> close;
   std::function<int(int*)> run;
+  std::function<int()> reject_all;
+  std::function<int()> accept_all;
   driver_t();
   ~driver_t();
-  
 };
 #endif
