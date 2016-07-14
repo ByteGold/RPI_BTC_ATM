@@ -13,14 +13,14 @@ static std::string gen_gpio_val_file(int pin){
   if(pin > gpio_count || pin < 0){
     throw std::runtime_error("gpio pin invalid");
   }
-  return (std::string)"/sys/class/gpio/gpio/" + std::to_string(pin) + (std::string)"/value";
+  return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/value";
 }
 
 static std::string gen_gpio_dir_file(int pin){
   if(pin > gpio_count || pin < 0){
     throw std::runtime_error("gpio pin invalid");
   }
-  return (std::string)"/sys/class/gpio/gpio/" + std::to_string(pin) + (std::string)"/direction";
+  return (std::string)"/sys/class/gpio/gpio" + std::to_string(pin) + (std::string)"/direction";
 }
 
 char gpio::get_val(int pin){
@@ -30,8 +30,10 @@ char gpio::get_val(int pin){
       for(unsigned int i = 0;i < gpio_pins.size();i++){
 	if(gpio_pins[i].get_pin() == pin){
 	  *retval = file::read_file(gen_gpio_val_file(pin))[0];
+	  return;
 	}
       }
+      gpio::add_pin(pin);
     }(pin, &retval));
   return retval;
 }
@@ -42,8 +44,10 @@ char gpio::set_val(int pin, bool val){
       for(unsigned int i = 0;i < gpio_pins.size();i++){
 	if(gpio_pins[i].get_pin() == pin){
 	  file::write_file(gen_gpio_val_file(pin), ((val) ? "1" : "0"));
+	  return;
 	}
       }
+      gpio::add_pin(pin);
     }(pin, val));
   return 0;
 }
@@ -55,8 +59,10 @@ char gpio::get_dir(int pin){
       for(unsigned int i = 0;i < gpio_pins.size();i++){
 	if(gpio_pins[i].get_pin() == pin){
 	  *retval = file::read_file(gen_gpio_dir_file(pin))[0];
+	  return;
 	}
       }
+      gpio::add_pin(pin);
     }(pin, &retval));
   return retval;
 }
@@ -67,8 +73,10 @@ char gpio::set_dir(int pin, int dir){
       for(unsigned int i = 0;i < gpio_pins.size();i++){
 	if(gpio_pins[i].get_pin() == pin){
 	  file::write_file(gen_gpio_dir_file(pin), ((dir) ? "1" : "0"));
+	  return;
 	}
       }
+      gpio::add_pin(pin);
     }(pin, dir));
   return 0;
 }
@@ -97,6 +105,7 @@ int gpio::init(){
   try{
     while(true){
       gpio::get_val(gpio_count);
+      // enables all pins
     }
     gpio_count++;
   }catch(...){}
@@ -154,6 +163,8 @@ void gpio::del_pin(int pin){
 }
 
 void gpio_pin_t::set_pin(int pin_){
+  system("echo \"" + std::to_string(pin_) "\" > /sys/class/gpio/export");
+  // needed to interface with GPIO pin
   pin = pin_;
 }
 
