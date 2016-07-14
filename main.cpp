@@ -5,12 +5,13 @@
 #include "driver.h"
 #include "ch_926.h"
 #include "json_rpc.h"
+#include "qr.h"
 
 bool running = true;
 int argc;
 char **argv;
 
-static int currency = CURRENCY_USD;
+static std::string currency = "USD";
 static std::vector<driver_t*> drivers;
 static std::thread driver_run_thread;
 
@@ -53,16 +54,19 @@ static void init(){
     std::cout << "rpi_btc_atm: raspberry pi based bitcoin atm" << std::endl
 	      << "usage:" << std::endl
 	      << "--ch-926-drv\t\tuse the ch 926 coin acceptor" << std::endl
-	      << "--priv-key\t\tfile containing the private key for withdrawals" << std::endl
 	      << "--markup-rate\t\trate to mark up the prices (default is 0)" << std::endl
 	      << "--no-gpio\t\tdisable gpio headers (renders program useless)" << std::endl
-	      << "--usd\t\tset the local currency to the united states dollar" << std::endl
+	      << "--currency\t\tset the local currency (3 character string: USD, GBP, EUR, etc.)" << std::endl
+	      << "--force-fee\t\tforce fees to be set, even if insanely high" << std::endl
 	      << "--help\t\tdisplay this help screen" << std::endl;
     exit(0);
   }
-  gpio::init(); // does it's own argv checking
-  if(search_for_argv("--usd") != -1){
-    currency = CURRENCY_USD;
+  gpio::init();
+  qr::init();
+  if(search_for_argv("--currency") != -1){
+    currency = get_argv_val("--currency");
+  }else{
+    throw std::runtime_error("no currency selected, set with --currency");
   }
   if(search_for_argv("--ch-926-drv") != -1){
     print("Enabling CH 926 driver", P_NOTICE);
@@ -70,6 +74,8 @@ static void init(){
     ch_926->init = ch_926_init;
     ch_926->close = ch_926_close;
     ch_926->run = ch_926_run;
+    ch_926->reject_all = ch_926_reject_all;
+    ch_926->accept_all = ch_926_accept_all;
     drivers.push_back(ch_926);
   }
   for(unsigned int i = 0;i < drivers.size();i++){
@@ -85,8 +91,12 @@ static void terminate(){
   }
   for(unsigned int i = 0;i < drivers.size();i++){
     drivers[i]->close();
+    delete drivers[i];
   }
+  drivers.clear();
   driver_run_thread.join();
+  gpio::close();
+  qr::close();
 }
 
 static void test_code(){
