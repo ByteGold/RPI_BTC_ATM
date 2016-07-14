@@ -31,5 +31,4 @@ LEDs are simple to use on the programming side, and can be used as the de-facto 
 ##TODO
 - Use the BV20 bill acceptor
 - Use the PN532 NFC RFID module for Bitcoin addresses
-- Use an NFC/RFID reader for Bitcoin addresses
 - Make a unified ATM case that can be 3D printed
