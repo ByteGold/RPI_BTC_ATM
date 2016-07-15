@@ -105,9 +105,8 @@ int gpio::init(){
   try{
     while(true){
       gpio::get_val(gpio_count);
-      // enables all pins
+      gpio_count++;
     }
-    gpio_count++;
   }catch(...){}
   switch(gpio_count){
   case 0:
@@ -194,7 +193,7 @@ int gpio_pin_t::get_blink(){
 }
 
 gpio_pin_t::gpio_pin_t(){
-  pin = -1;
+  set_pin(0);
   power = 0;
   dir = 0;
   blink = 0;
