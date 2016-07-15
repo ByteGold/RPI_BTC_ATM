@@ -192,7 +192,7 @@ int gpio_pin_t::get_blink(){
 }
 
 gpio_pin_t::gpio_pin_t(int pin_){
-  set_pin(0);
+  set_pin(pin_);
   power = 0;
   dir = 0;
   blink = 0;
