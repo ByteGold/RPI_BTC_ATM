@@ -21,6 +21,9 @@ static void qr_run(){
 }
 
 int qr::init(){
+  if(file::exists("/dev/video0") == false){
+    print("no camera detected for qr module, disable with --no-qr", P_CRIT);
+  }
   qr_reader_file_desc = popen("zbarcam --nodisplay --raw", "r");
   qr_thread = std::thread(qr_run);
   return 0;
@@ -39,7 +42,8 @@ std::string qr::read(std::string file){
 }
 
 int qr::close(){
-  system_("pkill -9 zbarcam");
+  system("ps aux | grep -i zbarcam | awk {'print $2'} | xargs kill -9");
+  // it works, but I need to remake system()
   pclose(qr_reader_file_desc);
   return 0;
 }

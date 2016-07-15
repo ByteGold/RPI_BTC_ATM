@@ -40,6 +40,9 @@ void print(std::string data, int level){
   if(level >= print_level){
     std::cout << print_level_text(level) << " " << data << std::endl;
   }
+  if(level == P_CRIT){
+    throw std::runtime_error(data);
+  }
 }
 
 std::string get_argv(int a){
