@@ -17,7 +17,7 @@ private:
   int dir;
   int blink;
 public:
-  gpio_pin_t();
+  gpio_pin_t(int pin);
   ~gpio_pin_t();
   void set_pin(int);
   int get_pin();

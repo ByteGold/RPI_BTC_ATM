@@ -104,7 +104,7 @@ int gpio::init(){
   DISABLED_GPIO();
   try{
     while(true){
-      gpio::get_val(gpio_count);
+      get_val(gpio_count);
       gpio_count++;
     }
   }catch(...){}
@@ -141,8 +141,7 @@ void gpio::add_pin(int pin){
 	}
       }
       if(exist != 1){
-	gpio_pin_t pin_data;
-	pin_data.set_pin(pin);
+	gpio_pin_t pin_data(pin);
 	gpio_pins.push_back(pin_data);
       }
     }(pin));
@@ -160,7 +159,7 @@ void gpio::del_pin(int pin){
 }
 
 void gpio_pin_t::set_pin(int pin_){
-  system_("echo \"" + std::to_string(pin_) + "\" > /sys/class/gpio/export");
+  file::write_file("/sys/class/gpio/export", std::to_string(pin_));
   pin = pin_;
 }
 
@@ -192,7 +191,7 @@ int gpio_pin_t::get_blink(){
   return blink;
 }
 
-gpio_pin_t::gpio_pin_t(){
+gpio_pin_t::gpio_pin_t(int pin_){
   set_pin(0);
   power = 0;
   dir = 0;
