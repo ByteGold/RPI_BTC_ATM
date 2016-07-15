@@ -46,7 +46,7 @@ void print(std::string data, int level){
 }
 
 std::string get_argv(int a){
-  if(a >= argc){
+  if(a < argc){
     return argv[a];
   }else{
     throw std::runtime_error("get_argv went out of bounds");
