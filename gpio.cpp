@@ -36,7 +36,7 @@ char gpio::get_val(int pin){
     }(pin, &retval));
   if(retval == 127){
     gpio::add_pin(pin);
-    retval = gpio::get_val(pin);
+    retval = 0;
   }
   return retval;
 }
@@ -111,11 +111,11 @@ int gpio::init(){
   switch(gpio_count){
   case 0:
     throw std::runtime_error("No GPIO pins detected, terminating program");
-  case 26:
-    print("Using Raspberry Pi Model B (26 GPIO pins)", PRINT_NOTICE);
+  case 26-1:
+    print("Using Raspberry Pi Model A/B (26 GPIO pins)", PRINT_NOTICE);
     break;
-  case 40:
-    print("Using Raspberry Pi Model A/B+/Zero/2 (40 GPIO pins)", PRINT_NOTICE);
+  case 40-1:
+    print("Using Raspberry Pi Model A+/B+/Zero/2 (40 GPIO pins)", PRINT_NOTICE);
     break;
   default:
     print("Using something that isn't a Raspberry Pi", PRINT_NOTICE);
