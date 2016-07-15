@@ -141,6 +141,7 @@ void gpio::add_pin(int pin){
 	}
       }
       if(exist != 1){
+	print("adding pin " + pin, P_DEBUG);
 	gpio_pin_t pin_data(pin);
 	gpio_pins.push_back(pin_data);
       }
