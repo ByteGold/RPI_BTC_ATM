@@ -50,7 +50,6 @@ char gpio::set_val(int pin, bool val){
 	  return;
 	}
       }
-      gpio::add_pin(pin);
     }(pin, val));
   return 0;
 }
@@ -65,7 +64,6 @@ char gpio::get_dir(int pin){
 	  return;
 	}
       }
-      gpio::add_pin(pin);
     }(pin, &retval));
   return retval;
 }
@@ -79,7 +77,6 @@ char gpio::set_dir(int pin, int dir){
 	  return;
 	}
       }
-      gpio::add_pin(pin);
     }(pin, dir));
   return 0;
 }
@@ -160,9 +157,7 @@ void gpio::del_pin(int pin){
 	  break;
 	}
       }
-    }(pin));
-
-  
+    }(pin));  
 }
 
 void gpio_pin_t::set_pin(int pin_){
