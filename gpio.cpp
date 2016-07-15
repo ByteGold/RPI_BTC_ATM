@@ -25,7 +25,7 @@ static std::string gen_gpio_dir_file(int pin){
 
 char gpio::get_val(int pin){
   DISABLED_GPIO();
-  char retval = ~0;
+  char retval = 127;
   LOCK_RUN(gpio_pins_lock, [](int pin, char *retval){
       for(unsigned int i = 0;i < gpio_pins.size();i++){
 	if(gpio_pins[i].get_pin() == pin){
@@ -34,7 +34,7 @@ char gpio::get_val(int pin){
 	}
       }
     }(pin, &retval));
-  if(retval == ~0){
+  if(retval == 127){
     gpio::add_pin(pin);
     retval = gpio::get_val(pin);
   }
