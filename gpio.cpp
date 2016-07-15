@@ -102,12 +102,7 @@ static void gpio_run(){
 
 int gpio::init(){
   DISABLED_GPIO();
-  try{
-    while(true){
-      get_val(gpio_count);
-      gpio_count++;
-    }
-  }catch(...){}
+  gpio_count = 26; // forced minimum, ngpio isn't reliable for RPi
   switch(gpio_count){
   case 0:
     throw std::runtime_error("No GPIO pins detected, terminating program");
