@@ -19,6 +19,9 @@ private:
 public:
   gpio_pin_t(int pin);
   ~gpio_pin_t();
+  void export_current_pin();
+  void unexport_current_pin();
+  int get_export_state();
   void set_pin(int);
   int get_pin();
   void set_power(int);

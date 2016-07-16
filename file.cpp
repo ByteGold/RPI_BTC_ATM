@@ -52,3 +52,11 @@ bool file::exists(std::string file){
     return true;
   }
 }
+
+void file::write(std::string file, std::string data){
+  write_file(file, data);
+}
+
+std::string file::read(std::string file){
+  return read_file(file);
+}

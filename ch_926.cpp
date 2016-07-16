@@ -54,18 +54,17 @@ int ch_926_run(int *count){
   return 0;
 }
 
+/*
+  I heard that this feature exists, and it would be awful cool, but I can't 
+  find any documentation on it anywhere. I need the physical unit for this,
+  I hope this isn't a DIP switch I have to mess around with in GPIO.
+*/
+
+
 int ch_926_accept_all(){
-  /*
-    I heard that this feature exists, and it would be awful cool, but I can't 
-    find any documentation on it anywhere. I need the physical unit for this.
-   */
   return -1;
 }
 
 int ch_926_reject_all(){
-  /*
-    I heard that this feature exists, and it would be awful cool, but I can't 
-    find any documentation on it anywhere. I need the physical unit for this.
-   */
   return -1;
 }

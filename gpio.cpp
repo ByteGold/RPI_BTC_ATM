@@ -154,9 +154,20 @@ void gpio::del_pin(int pin){
     }(pin));  
 }
 
+void gpio_pin_t::export_current_pin(){
+  file::write("/sys/class/gpio/export", std::to_string(pin));
+}
+
+void gpio_pin_t::unexport_current_pin(){
+  file::write("/sys/class/gpio/unexport", std::to_string(pin));
+}
+
 void gpio_pin_t::set_pin(int pin_){
-  file::write_file("/sys/class/gpio/export", std::to_string(pin_));
+  if(file::exists("/sys/class/gpio/gpio"+std::to_string(pin))){
+    unexport_current_pin();
+  }
   pin = pin_;
+  export_current_pin();
 }
 
 int gpio_pin_t::get_pin(){
@@ -195,4 +206,5 @@ gpio_pin_t::gpio_pin_t(int pin_){
 }
 
 gpio_pin_t::~gpio_pin_t(){
+  unexport_current_pin();
 }
