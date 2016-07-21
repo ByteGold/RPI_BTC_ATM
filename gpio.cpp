@@ -4,7 +4,7 @@
 #include "main.h"
 #include "settings.h"
 
-#define DISABLED_GPIO() if(settings::get_setting("--no-gpio") == "true") return 0;
+#define DISABLED_GPIO() if(settings::get_setting("no_gpio") == "true") return 0;
 
 static int gpio_count = 0;
 static std::vector<gpio_pin_t> gpio_pins;

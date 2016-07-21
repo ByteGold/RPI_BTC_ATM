@@ -5,6 +5,7 @@
 #include "string"
 #include "mutex"
 #include "sstream"
+#include "cstdio"
 namespace settings{
   void set_settings();
   std::string get_setting(std::string);

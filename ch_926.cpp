@@ -39,10 +39,17 @@ int ch_926_close(){
 }
 
 int ch_926_run(int *count){
-  unsigned long int pulse_count = 0;
+  long int pulse_count = 0;
   if(settings::get_setting("ch_926_debug") == "true"){
     std::cout << "pulse count:";
-    std::cin >> pulse_count;
+    std::string pulse_count_input; // protection against absurd values
+    std::cin >> pulse_count_input;
+    try{
+      pulse_count = std::stol(pulse_count_input);
+    }catch(...){
+      print("input is invalid, setting to zero", P_ERR);
+      pulse_count = 0;
+    }
   }else if(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
     pulse_count++;
     std::this_thread::sleep_for(std::chrono::milliseconds(CH_926_PULSE_TIME));
@@ -51,7 +58,20 @@ int ch_926_run(int *count){
       std::this_thread::sleep_for(std::chrono::milliseconds(CH_926_PULSE_TIME));
     }
   }
-  *count += value_table[pulse_count];
+  if(pulse_count < 0){
+    print("pulse count is negative, something messed up badly", P_ERR);
+    return -1;
+  }
+  if(pulse_count == 0){
+    print("pulse count is zero, quitting early", P_ERR);
+    return 0;
+  }
+  try{
+    *count += value_table.at(pulse_count);
+    print("added " + std::to_string(value_table.at(pulse_count)) +" to count", P_NOTICE);
+  }catch(std::out_of_range e){
+    print("pulses out of range, this should REALLY be checked out", P_ERR);
+  }
   return 0;
 }
 
