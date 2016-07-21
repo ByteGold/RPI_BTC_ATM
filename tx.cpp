@@ -2,6 +2,7 @@
 #include "tx.h"
 #include "util.h"
 #include "json_rpc.h"
+#include "settings.h"
 
 #define SEND_ID 1
 #define SET_TX_FEE_ID 2
@@ -9,6 +10,7 @@
 static std::vector<tx_out_t> outputs;
 static std::mutex outputs_lock;
 static std::string tx_from_account;
+static std::thread send_transaction_block_thread;
 
 static satoshi_t tx_outputs_total(){
   satoshi_t retval = 0;
@@ -57,9 +59,20 @@ int tx::send_transaction_block(){
       custom_tx_string = JSON_BRACES(custom_tx_string);
       json_rpc::cmd("sendmany", {tx_from_account, custom_tx_string}, SEND_ID);
     }else{
-      print("tx backlog exists, waiting until it is profitable to send", P_DEBUG);
+      print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
     }
   }
+  return 0;
+}
+
+int tx::init(){
+  send_transaction_block_thread = std::thread([](){
+    while(true){
+      if(outputs.size() >= (unsigned int)std::stoul(settings::get_setting("outputs_until_block"))){
+	tx::send_transaction_block();
+      }
+    }
+    });
   return 0;
 }
 

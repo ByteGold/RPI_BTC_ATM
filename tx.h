@@ -34,6 +34,8 @@ public:
 */
 
 namespace tx{
+  int init();
+  int close();
   int send_transaction_block();
   int add_tx_out(tx_out_t transaction);
 };

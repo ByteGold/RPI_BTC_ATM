@@ -29,6 +29,7 @@ void deposit::add_fee(fee_t fee_){
     }(fee_));
 }
 
+
 int deposit::send(std::string address, satoshi_t satoshi, int type){
   satoshi_t working_satoshi = satoshi;
   LOCK_RUN(fee_lock, [](satoshi_t *working_satoshi){
@@ -36,9 +37,13 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
 	const long double fee_percent = fee[i].get_percent();
 	const satoshi_t fee_size = fee_percent*(*working_satoshi);
 	if(fee_size != 0){
-	  tx_out_t tx_tmp(fee[i].get_address(), fee_size);
-	  print("adding the fee of " + std::to_string(fee_size) + " satoshi (" + std::to_string(fee_percent) + ") to " + fee[i].get_address(), P_NOTICE);
-	  tx::add_tx_out(tx_tmp);
+	  if(fee[i].get_address() != ""){
+	    tx_out_t tx_tmp(fee[i].get_address(), fee_size);
+	    print("adding the fee of " + std::to_string(fee_size) + " satoshi (" + std::to_string(fee_percent) + ") to " + fee[i].get_address(), P_NOTICE);
+	    tx::add_tx_out(tx_tmp);
+	  }else{
+	    print("applying standard fee, not making a transaction", P_NOTICE);
+	  }
 	}
 	*working_satoshi -= fee_size;
       }
@@ -46,7 +51,6 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
   tx::add_tx_out(tx_out_t(address, working_satoshi));
   if(settings::get_setting("no_tx_blocks") == "true"){
     tx::send_transaction_block();
-    // no need to manually set a fee
   }
   return 0;
 }

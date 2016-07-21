@@ -19,7 +19,8 @@ and quarters (half dollars and dollar coins shouldn't be used to buy things anyw
 #define CH_926_GPIO_POWER 1
 
 static int gpio_pins[2];
-static std::array<int, 5> value_table = {0, 1, 5, 10, 25};
+static std::array<int, 6> value_table_usd = {0, 1, 5, 10, 25, 0};
+static std::array<int, 6> *value_table = nullptr;
 
 //sane default value, no need for bounds checking because the acceptor shouldn't
 //return a pulse set it wasn't specifically programmed for, and the proper table should be set
@@ -29,7 +30,12 @@ int ch_926_init(){
   gpio_pins[CH_926_GPIO_POWER] = 2;
   gpio::set_dir(gpio_pins[CH_926_GPIO_POWER], GPIO_OUT); // should be enough
   gpio::set_dir(gpio_pins[CH_926_GPIO_IN], GPIO_IN);
-  //TODO: add other currencies
+  if(settings::get_setting("currency") == "USD"){
+    print("setting currency to USD", P_NOTICE);
+    value_table = &value_table_usd;
+  }else{
+    print("your plebian currency isn't supported yet", P_CRIT);
+  }
   return 0;
 }
 
@@ -67,8 +73,8 @@ int ch_926_run(int *count){
     return 0;
   }
   try{
-    *count += value_table.at(pulse_count);
-    print("added " + std::to_string(value_table.at(pulse_count)) +" to count", P_NOTICE);
+    *count += value_table->at(pulse_count);
+    print("added " + std::to_string(value_table->at(pulse_count)) +" to count", P_NOTICE);
   }catch(std::out_of_range e){
     print("pulses out of range, this should REALLY be checked out", P_ERR);
   }

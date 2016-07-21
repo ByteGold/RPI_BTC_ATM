@@ -60,10 +60,11 @@ long double get_btc_rate(std::string currency){
 
 int system_(std::string str){
   print("system: " + str, P_DEBUG);
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
   /*
     Most commands need some time to be processed on the lower level (GPIO).
     Speed shouldn't be a problem
    */
-  return system(str.c_str());
+  int retval = system(str.c_str());
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  return retval;
 }
