@@ -6,6 +6,8 @@
 #include "ch_926.h"
 #include "json_rpc.h"
 #include "qr.h"
+#include "deposit.h"
+#include "settings.h"
 
 bool running = true;
 int argc;
@@ -52,23 +54,17 @@ static void init(){
   signal(SIGKILL, signal_handler);
   if(search_for_argv("--help") != -1){
     std::cout << "rpi_btc_atm: raspberry pi based bitcoin atm" << std::endl
+	      << "refer to settings.cfg for settings" << std::endl
 	      << "usage:" << std::endl
-	      << "--ch-926-drv\t\tuse the ch 926 coin acceptor" << std::endl
-	      << "--markup-rate\t\trate to mark up the prices (default is 0)" << std::endl
-	      << "--no-gpio\t\tdisable gpio headers (renders program useless)" << std::endl
-	      << "--currency\t\tset the local currency (3 character string: USD, GBP, EUR, etc.)" << std::endl
-	      << "--force-fee\t\tforce fees to be set, even if insanely high" << std::endl
 	      << "--help\t\tdisplay this help screen" << std::endl;
     exit(0);
   }
+  settings::set_settings();
   gpio::init();
   qr::init();
-  if(search_for_argv("--currency") != -1){
-    currency = get_argv(search_for_argv("--currency")+1);
-  }else{
-    throw std::runtime_error("no currency selected, set with --currency");
-  }
-  if(search_for_argv("--ch-926-drv") != -1){
+  currency = settings::get_setting("currency");
+  // TODO: convert from parameters to cfg file
+  if(settings::get_setting("ch_926_drv") == "true"){
     print("Enabling CH 926 driver", P_NOTICE);
     driver_t *ch_926 = new driver_t;
     ch_926->init = ch_926_init;
@@ -107,7 +103,7 @@ int main(int argc_, char **argv_){
   argc = argc_;
   argv = argv_;
   init();
-  if(search_for_argv("--test-code") != -1){
+  if(search_for_argv("--test-code") != -1){ // debugging/testing can stay argv
     test_code();
     running = false;
   }

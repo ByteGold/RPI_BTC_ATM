@@ -11,6 +11,7 @@ and quarters (half dollars and dollar coins shouldn't be used to buy things anyw
 #include "ch_926.h"
 #include "util.h"
 #include "gpio.h"
+#include "settings.h"
 
 #define CH_926_PULSE_TIME 100
 
@@ -39,7 +40,7 @@ int ch_926_close(){
 
 int ch_926_run(int *count){
   unsigned long int pulse_count = 0;
-  if(search_for_argv("--ch-926-debug") != -1){
+  if(settings::get_setting("ch_926_debug") == "true"){
     std::cout << "pulse count:";
     std::cin >> pulse_count;
   }else if(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){

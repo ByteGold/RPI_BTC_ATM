@@ -3,6 +3,7 @@
 #include "deposit.h"
 #include "tx.h"
 #include "json_rpc.h"
+#include "settings.h"
 
 static std::vector<fee_t> fee;
 static std::mutex fee_lock;
@@ -10,7 +11,7 @@ static std::mutex fee_lock;
 void deposit::add_fee(fee_t fee_){
   if(fee_.get_percent() > .25){
     print("fee is absurdly high, force with --force-fee", P_CRIT);
-    // should be done at runtime
+    // should be done at runtime, so it is safe to throw an exception
   }
   LOCK_RUN(fee_lock, [](fee_t fee_){
       for(unsigned int i = 0;i < fee.size();i++){
@@ -43,7 +44,7 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
       }
     }(&working_satoshi));
   tx::add_tx_out(tx_out_t(address, working_satoshi));
-  if(search_for_argv("--no-tx-blocks") != -1){
+  if(settings::get_setting("no_tx_blocks") == "true"){
     tx::send_transaction_block();
     // no need to manually set a fee
   }

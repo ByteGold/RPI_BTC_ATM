@@ -1,6 +1,7 @@
 #include "main.h"
 #include "util.h"
 #include "json_rpc.h"
+#include "settings.h"
 
 static int json_rpc_port = DEFAULT_NODE_PORT;
 
@@ -87,14 +88,14 @@ static int json_rpc_send_query(std::string url, std::string json_query){
 }
 
 int json_rpc::cmd(std::string method, std::vector<std::string> params, int id, std::string ip, int port){
-  if(search_for_argv("--json-rpc-username") != -1){
-    json_rpc_username = get_argv(search_for_argv("--json-rpc-username")+1);
+  if(settings::get_setting("json_rpc_username") != ""){
+    json_rpc_username = settings::get_setting("json_rpc_username");
   }
-  if(search_for_argv("--json-rpc-password") != -1){
-    json_rpc_password = get_argv(search_for_argv("--json-rpc-password")+1);
+  if(settings::get_setting("json_rpc_password") != ""){
+    json_rpc_password = settings::get_setting("json_rpc_password");
   }
-  if(search_for_argv("--json-rpc-port") != -1){
-    json_rpc_port = std::stoi(get_argv(search_for_argv("--json-rpc-port")+1));
+  if(settings::get_setting("json_rpc_port") != ""){
+    json_rpc_port = std::stoi(settings::get_setting("json_rpc_port"));
   }
   std::string data;
   data += json_set_var("method", method) + ",";

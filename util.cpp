@@ -45,18 +45,6 @@ void print(std::string data, int level){
   }
 }
 
-std::string get_argv(int a){
-  if(a < argc){
-    return argv[a];
-  }else{
-    throw std::runtime_error("get_argv went out of bounds");
-  }
-}
-
-std::string get_argv_val(std::string a){
-  return get_argv(search_for_argv(a));
-}
-
 long double get_btc_rate(std::string currency){
   // 3 character code
   if(currency == "USD" || currency == "usd"){
@@ -66,13 +54,16 @@ long double get_btc_rate(std::string currency){
     return price;
   }else{
     print("your plebian currency isn't supported yet", P_CRIT);
+    return 0; // complains about no retval
   }
 }
 
 int system_(std::string str){
   print("system: " + str, P_DEBUG);
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
-  // this gives the kernel enough time to respond to GPIO events, the overhead
-  // isn't too big, so it doesn't really matter
+  /*
+    Most commands need some time to be processed on the lower level (GPIO).
+    Speed shouldn't be a problem
+   */
   return system(str.c_str());
 }

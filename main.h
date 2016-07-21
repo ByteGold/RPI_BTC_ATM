@@ -11,7 +11,9 @@
 #include "signal.h"
 #include "unistd.h"
 #define DEFAULT_THREAD_SLEEP 10
+// speed isn't an issue
 extern bool running;
 extern int argc;
 extern char** argv;
+// string possibly containing it, variable
 #endif

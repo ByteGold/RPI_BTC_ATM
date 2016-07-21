@@ -2,7 +2,9 @@
 #include "file.h"
 #include "util.h"
 #include "main.h"
-#define DISABLED_GPIO() if(search_for_argv("--no-gpio") != -1) return 0;
+#include "settings.h"
+
+#define DISABLED_GPIO() if(settings::get_setting("--no-gpio") == "true") return 0;
 
 static int gpio_count = 0;
 static std::vector<gpio_pin_t> gpio_pins;
