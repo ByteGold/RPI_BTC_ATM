@@ -35,6 +35,7 @@ static int auto_set_tx_fee(){
 
 int tx::send_transaction_block(){
   // TODO: unlock the wallet for a second or two
+  json_rpc::cmd("walletpassphrase", {settings::get_setting("passphrase"), "10"}); // is 10 too high?
   int fee = auto_set_tx_fee();
   print("transaction fee is " + std::to_string(fee), P_NOTICE);
   if((fee/100000000)*get_btc_rate("USD") > .50){
@@ -62,6 +63,7 @@ int tx::send_transaction_block(){
       print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
     }
   }
+  json_rpc::cmd("walletlock", {});
   return 0;
 }
 

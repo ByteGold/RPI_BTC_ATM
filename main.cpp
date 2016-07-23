@@ -53,6 +53,7 @@ static void init(){
     exit(0);
   }
   settings::set_settings();
+  tx::init();
   gpio::init();
   qr::init();
   // TODO: convert from parameters to cfg file
@@ -101,6 +102,7 @@ static void terminate(){
   }
   drivers.clear();
   driver_run_thread.join();
+  tx::close();
   gpio::close();
   qr::close();
 }
@@ -117,10 +119,10 @@ static int loop(){
     }
     if(btc_addr.substr(0, 8) == "bitcoin:"){
       btc_addr = btc_addr.substr(8, btc_addr.size());
-      print("removed 'bitcoin:' prefix from address", P_NOTICE);
+      print("removed 'bitcoin:' prefix from address (" + btc_addr +")", P_NOTICE);
     }
     int old_count = 0;
-    long int time_since_last_change = 0;
+    long int time_since_last_change = std::time(nullptr);
     bool accepting_money = true;
     // print current amount of money to screen, exchange rate, markup, etc.
     while(accepting_money){
@@ -137,12 +139,14 @@ static int loop(){
 	accepting_money = false;
       }
     }
-    if(deposit::send(btc_addr, old_count*get_btc_rate(settings::get_setting("currency")) == 0)){
-      // print "BTC SENT" to screen
-      print("tx seemed to go properly", P_NOTICE);
-    }else{
-      // print "ERROR IN TX" \n "RETRYING LATER"
-      print("error in tx", P_ERR);
+    if(old_count != 0){
+      if(deposit::send(btc_addr, old_count*get_btc_rate(settings::get_setting("currency")) == 0)){
+	// print "BTC SENT" to screen
+	print("tx seemed to go properly", P_NOTICE);
+      }else{
+	// print "ERROR IN TX" \n "RETRYING LATER"
+	print("error in tx", P_ERR);
+      }
     }
     return 0;
 }

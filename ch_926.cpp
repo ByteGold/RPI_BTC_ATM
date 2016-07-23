@@ -69,7 +69,7 @@ int ch_926_run(int *count){
     return -1;
   }
   if(pulse_count == 0){
-    print("pulse count is zero, quitting early", P_ERR);
+    print("pulse count is zero, quitting early", P_DEBUG);
     return 0;
   }
   try{

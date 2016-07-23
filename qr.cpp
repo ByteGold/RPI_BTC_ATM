@@ -24,9 +24,17 @@ static void qr_run(){
     while(!feof(qr_reader_file_desc)){
       line_cnt++;
       if(fgets(input, 100, qr_reader_file_desc) && qr_run_number_of_lines != line_cnt){
+	print("reading data qr_run", P_DEBUG);
 	qr_run_number_of_lines = line_cnt;
 	line_cnt = 0;
-	qr_data = std::string(input);
+	for(int i = 0;i < 100;i++){
+	  if(input[i] == '\n'){
+	    input[i] = ' ';
+	  }
+	}
+	std::stringstream ss(input);
+	ss >> qr_data;
+	// wacky laundering
 	memset(input, 0, 100);
 	print("scanned new qr code '" + qr_data + "'", P_NOTICE);
       }
@@ -41,7 +49,7 @@ int qr::init(){
   if(file::exists("/dev/video0") == false){
     print("no camera detected for qr module, disable with no_qr", P_CRIT);
   }
-  qr_reader_file_desc = popen("zbarcam --nodisplay --raw", "r");
+  qr_reader_file_desc = popen("zbarcam --raw", "r");
   qr_thread = std::thread(qr_run);
   return 0;
 }
@@ -62,7 +70,9 @@ std::string qr::read(std::string file){
 
 std::string qr::read_from_webcam(){
   DISABLED_QR_STR();
-  return qr_data;
+  std::string retval = qr_data;
+  qr_data = "";
+  return retval;
 }
 
 int qr::close(){
