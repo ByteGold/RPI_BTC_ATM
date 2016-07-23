@@ -6,6 +6,8 @@
 
 #define SEND_ID 1
 #define SET_TX_FEE_ID 2
+#define WALLETPASSPHRASE_ID 3
+#define WALLETLOCK_ID 4
 
 static std::vector<tx_out_t> outputs;
 static std::mutex outputs_lock;
@@ -35,7 +37,7 @@ static int auto_set_tx_fee(){
 
 int tx::send_transaction_block(){
   // TODO: unlock the wallet for a second or two
-  json_rpc::cmd("walletpassphrase", {settings::get_setting("passphrase"), "10"}); // is 10 too high?
+  json_rpc::cmd("walletpassphrase", {settings::get_setting("passphrase"), "10"}, WALLETPASSPHRASE_ID); // is 10 too high?
   int fee = auto_set_tx_fee();
   print("transaction fee is " + std::to_string(fee), P_NOTICE);
   if((fee/100000000)*get_btc_rate("USD") > .50){
@@ -63,7 +65,7 @@ int tx::send_transaction_block(){
       print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
     }
   }
-  json_rpc::cmd("walletlock", {});
+  json_rpc::cmd("walletlock", {}, WALLETLOCK_ID);
   return 0;
 }
 
@@ -75,6 +77,11 @@ int tx::init(){
       }
     }
     });
+  return 0;
+}
+
+int tx::close(){
+  send_transaction_block_thread.join();
   return 0;
 }
 
