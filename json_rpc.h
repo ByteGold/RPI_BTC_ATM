@@ -8,13 +8,13 @@
 #define JSON_BRACES(data) ((std::string)("{"+data+"}"))
 #define JSON_BRACKETS(data) ((std::string)("["+data+"]"))
 struct json_rpc_resp_t{
-  std::string result;
-  std::string error;
-  int id;
+	std::string result;
+	std::string error;
+	int id;
 };
 namespace json_rpc{
-  int cmd(std::string method, std::vector<std::string> params, int id, std::string ip = DEFAULT_NODE_IP, int port = DEFAULT_NODE_PORT);
-  int resp(std::string *result, std::string *error, int id);
+	int cmd(std::string method, std::vector<std::string> params, int id, std::string ip = DEFAULT_NODE_IP, int port = DEFAULT_NODE_PORT);
+	int resp(std::string *result, std::string *error, int id);
 }
 extern std::string json_set_var(std::string type, std::vector<std::string> data);
 #endif

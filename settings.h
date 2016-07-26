@@ -7,7 +7,7 @@
 #include "sstream"
 #include "cstdio"
 namespace settings{
-  void set_settings(std::string settings_file = "settings.cfg");
-  std::string get_setting(std::string);
+	void set_settings(std::string settings_file = "settings.cfg");
+	std::string get_setting(std::string);
 }
 #endif

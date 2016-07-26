@@ -7,10 +7,10 @@
 #include "sys/stat.h"
 #include "unistd.h"
 namespace file{
-  void write_file(std::string file, std::string data);
-  std::string read_file(std::string file);
-  bool exists(std::string file);
-  void write(std::string file, std::string data);
-  std::string read(std::string file);
+	void write_file(std::string file, std::string data);
+	std::string read_file(std::string file);
+	bool exists(std::string file);
+	void write(std::string file, std::string data);
+	std::string read(std::string file);
 }
 #endif
