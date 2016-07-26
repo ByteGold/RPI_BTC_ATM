@@ -32,92 +32,92 @@ static std::array<int, 7> *value_table = nullptr;
 //return a pulse set it wasn't specifically programmed for, and the proper table should be set
 
 int ch_926_init(){
-  gpio_pins[CH_926_GPIO_IN] = 1;
-  gpio_pins[CH_926_GPIO_POWER] = 2;
-  gpio::set_dir(gpio_pins[CH_926_GPIO_POWER], GPIO_OUT); // should be enough
-  gpio::set_dir(gpio_pins[CH_926_GPIO_IN], GPIO_IN);
-  if(settings::get_setting("currency") == "USD"){
-    print("setting currency to USD", P_NOTICE);
-    value_table = &value_table_usd;
-    try{
-      if(settings::get_setting("ch_926_1_pulse") != ""){
-	(*value_table)[1] = std::stoul(settings::get_setting("ch_926_1_pulse"));
-      }
-      if(settings::get_setting("ch_926_2_pulse") != ""){
-	(*value_table)[2] = std::stoul(settings::get_setting("ch_926_2_pulse"));
-      }
-      if(settings::get_setting("ch_926_3_pulse") != ""){
-	(*value_table)[3] = std::stoul(settings::get_setting("ch_926_3_pulse"));
-      }
-      if(settings::get_setting("ch_926_4_pulse") != ""){
-	(*value_table)[4] = std::stoul(settings::get_setting("ch_926_4_pulse"));
-      }
-      if(settings::get_setting("ch_926_5_pulse") != ""){
-	(*value_table)[5] = std::stoul(settings::get_setting("ch_926_5_pulse"));
-      }
-      if(settings::get_setting("ch_926_6_pulse") != ""){
-	(*value_table)[6] = std::stoul(settings::get_setting("ch_926_6_pulse"));
-      }
-    }catch(std::invalid_argument e){
-      print("invalid argument for ch 926 pulse count", P_ERR);
-      throw e;
-    }catch(std::out_of_range e){
-      print("currency is out of range for ch 926 pulse count", P_ERR);
-      throw e;
-    }
-  }else{
-    print("price ticker has no support for your non-USD currency", P_CRIT);
-    // TODO: fix this
-  }
-  return 0;
+	gpio_pins[CH_926_GPIO_IN] = 1;
+	gpio_pins[CH_926_GPIO_POWER] = 2;
+	gpio::set_dir(gpio_pins[CH_926_GPIO_POWER], GPIO_OUT); // should be enough
+	gpio::set_dir(gpio_pins[CH_926_GPIO_IN], GPIO_IN);
+	if(settings::get_setting("currency") == "USD"){
+		print("setting currency to USD", P_NOTICE);
+		value_table = &value_table_usd;
+		try{
+			if(settings::get_setting("ch_926_1_pulse") != ""){
+				(*value_table)[1] = std::stoul(settings::get_setting("ch_926_1_pulse"));
+			}
+			if(settings::get_setting("ch_926_2_pulse") != ""){
+				(*value_table)[2] = std::stoul(settings::get_setting("ch_926_2_pulse"));
+			}
+			if(settings::get_setting("ch_926_3_pulse") != ""){
+				(*value_table)[3] = std::stoul(settings::get_setting("ch_926_3_pulse"));
+			}
+			if(settings::get_setting("ch_926_4_pulse") != ""){
+				(*value_table)[4] = std::stoul(settings::get_setting("ch_926_4_pulse"));
+			}
+			if(settings::get_setting("ch_926_5_pulse") != ""){
+				(*value_table)[5] = std::stoul(settings::get_setting("ch_926_5_pulse"));
+			}
+			if(settings::get_setting("ch_926_6_pulse") != ""){
+				(*value_table)[6] = std::stoul(settings::get_setting("ch_926_6_pulse"));
+			}
+		}catch(std::invalid_argument e){
+			print("invalid argument for ch 926 pulse count", P_ERR);
+			throw e;
+		}catch(std::out_of_range e){
+			print("currency is out of range for ch 926 pulse count", P_ERR);
+			throw e;
+		}
+	}else{
+		print("price ticker has no support for your non-USD currency", P_CRIT);
+		// TODO: fix this	
+	}
+	return 0;
 }
 
 int ch_926_close(){
-  //possibly reset the GPIO pins to input?
-  return 0;
+	//possibly reset the GPIO pins to input?
+	return 0;
 }
 
 /*
   If the pulses don't match up properly, make sure it has been grounded well
- */
+*/
 
 int ch_926_run(int *count){
-  long int pulse_count = 0;
-  if(settings::get_setting("ch_926_debug") == "true"){
-    std::cout << "pulse count:";
-    std::string pulse_count_input; // protection against absurd values
-    std::cin >> pulse_count_input;
-    try{
-      pulse_count = std::stol(pulse_count_input);
-    }catch(std::invalid_argument e){
-      print("invalid argument, setting to zero", P_ERR);
-      pulse_count = 0;
-    }catch(std::out_of_range){
-      print("pulse count is out of range, setting to zero", P_ERR);
-    }
-  }else if(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
-    pulse_count++;
-    sleep_ms(CH_926_PULSE_TIME);
-    while(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
-      pulse_count++;
-      sleep_ms(CH_926_PULSE_TIME);
-    }
-  }
-  if(pulse_count < 0){
-    print("pulse count is negative, something messed up badly", P_ERR);
-    return -1;
-  }
-  if(pulse_count == 0){
-    print("pulse count is zero, quitting early", P_SPAM);
-    return 0;
-  }
-  try{
-    *count += value_table->at(pulse_count);
-    print("added " + std::to_string(value_table->at(pulse_count)) +" to count", P_NOTICE);
-  }catch(std::out_of_range e){
-    print("pulses out of range, this should REALLY be checked out", P_ERR);
-  }
-  return 0;
+	long int pulse_count = 0;
+	if(settings::get_setting("ch_926_debug") == "true"){
+		std::cout << "pulse count:";
+		std::string pulse_count_input; // protection against absurd values
+		std::cin >> pulse_count_input;
+		try{
+			pulse_count = std::stol(pulse_count_input);
+		}catch(std::invalid_argument e){
+			print("invalid argument, setting to zero", P_ERR);
+			pulse_count = 0;
+		}catch(std::out_of_range){
+			print("pulse count is out of range, setting to zero", P_ERR);
+		}
+	}else if(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
+		pulse_count++;
+		sleep_ms(CH_926_PULSE_TIME);
+		while(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
+			pulse_count++;
+			sleep_ms(CH_926_PULSE_TIME);
+		}
+	}
+	if(pulse_count < 0){
+		print("pulse count is negative, something messed up badly", P_ERR);
+		return -1;
+	}
+	if(pulse_count == 0){
+		print("pulse count is zero, quitting early", P_SPAM);
+		return 0;
+	}
+	try{
+		*count += value_table->at(pulse_count);
+		print("added " + std::to_string(value_table->at(pulse_count)) +" to count", P_NOTICE);
+	}catch(std::out_of_range e){
+		print("pulses out of range, this should REALLY be checked out", P_ERR);
+	}
+	return 0;
 }
 
 /*
@@ -128,9 +128,9 @@ int ch_926_run(int *count){
 
 
 int ch_926_accept_all(){
-  return -1;
+	return -1;
 }
 
 int ch_926_reject_all(){
-  return -1;
+	return -1;
 }
