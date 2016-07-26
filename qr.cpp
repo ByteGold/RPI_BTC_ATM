@@ -8,12 +8,10 @@
 #define DISABLED_QR_INT() if(settings::get_setting("no_qr") == "true"){return 0;}
 #define DISABLED_QR_VOID() if(settings::get_setting("no_qr") == "true"){return;}
 
-
-static std::string qr_data;
-static std::thread qr_thread;
+static std::string qr_data = "";
+static std::mutex qr_data_lock;
 static FILE* qr_reader_file_desc = NULL;
-
-int qr_run_number_of_lines = 0;
+static int qr_run_number_of_lines = 0;
 
 static void qr_run(){
   DISABLED_QR_VOID();
@@ -32,15 +30,16 @@ static void qr_run(){
 	    input[i] = ' ';
 	  }
 	}
-	std::stringstream ss(input);
-	ss >> qr_data;
-	// wacky laundering
-	memset(input, 0, 100);
-	print("scanned new qr code '" + qr_data + "'", P_NOTICE);
+	LOCK_RUN(qr_data_lock, [](char *input){
+	    std::stringstream ss(input);
+	    ss >> qr_data;
+	    memset(input, 0, 100);
+	    print("scanned new qr code '" + qr_data + "'", P_NOTICE);
+	  }(input));
       }
     }
     rewind(qr_reader_file_desc);
-    std::this_thread::sleep_for(std::chrono::milliseconds(DEFAULT_THREAD_SLEEP));
+    sleep_ms(DEFAULT_THREAD_SLEEP);
   }
 }
 
@@ -49,8 +48,8 @@ int qr::init(){
   if(file::exists("/dev/video0") == false){
     print("no camera detected for qr module, disable with no_qr", P_CRIT);
   }
-  qr_reader_file_desc = popen("zbarcam --raw", "r");
-  qr_thread = std::thread(qr_run);
+  qr_reader_file_desc = popen("zbarcam --nodisplay --raw", "r");
+  threads.emplace_back(std::thread(qr_run));
   return 0;
 }
 
@@ -70,7 +69,12 @@ std::string qr::read(std::string file){
 
 std::string qr::read_from_webcam(){
   DISABLED_QR_STR();
-  std::string retval = qr_data;
+  std::string retval;
+  LOCK_RUN(qr_data_lock, [](std::string *retval){
+      *retval = qr_data;
+      print("read qr code " + qr_data + " from qr_data", P_NOTICE);
+      qr_data = "";
+    }(&retval));
   qr_data = "";
   return retval;
 }

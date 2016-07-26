@@ -9,7 +9,6 @@
 static int gpio_count = 0;
 static std::vector<gpio_pin_t> gpio_pins;
 static std::mutex gpio_pins_lock;
-static std::thread gpio_thread;
 
 static std::string gen_gpio_val_file(int pin){
   if(pin > gpio_count || pin < 0){
@@ -83,25 +82,6 @@ char gpio::set_dir(int pin, int dir){
   return 0;
 }
 
-static void gpio_run(){
-  while(running){
-    LOCK_RUN(gpio_pins_lock,{
-	for(unsigned int i = 0;i < gpio_pins.size();i++){
-	  const int pin = gpio_pins[i].get_pin();
-	  const int power = gpio_pins[i].get_power();
-	  const int dir = gpio_pins[i].get_dir();
-	  const int blink = gpio_pins[i].get_blink();
-	  file::write_file(gen_gpio_dir_file(pin), ((dir == GPIO_IN) ? "in" : "out"));
-	  if(blink == 0){
-	    file::write_file(gen_gpio_val_file(pin), std::string({(char)power, 0}));
-	  }else{
-	  }
-	}
-      });
-    std::this_thread::sleep_for(std::chrono::milliseconds(DEFAULT_THREAD_SLEEP));
-  }
-}
-
 int gpio::init(){
   DISABLED_GPIO();
   gpio_count = 26; // forced minimum, ngpio isn't reliable for RPi
@@ -118,12 +98,28 @@ int gpio::init(){
     print("Using something that isn't a Raspberry Pi", PRINT_NOTICE);
     break;
   }
-  gpio_thread = std::thread(gpio_run);
+  threads.emplace_back(std::thread([](){
+    while(running){
+      LOCK_RUN(gpio_pins_lock,{
+	  for(unsigned int i = 0;i < gpio_pins.size();i++){
+	    const int pin = gpio_pins[i].get_pin();
+	    const int power = gpio_pins[i].get_power();
+	    const int dir = gpio_pins[i].get_dir();
+	    const int blink = gpio_pins[i].get_blink();
+	    file::write_file(gen_gpio_dir_file(pin), ((dir == GPIO_IN) ? "in" : "out"));
+	    if(blink == 0){
+	      file::write_file(gen_gpio_val_file(pin), std::string({(char)power, 0}));
+	    }else{
+	    }
+	  }
+	});
+      sleep_ms(DEFAULT_THREAD_SLEEP);
+    }
+    }));
   return 0;
 }
 
 int gpio::close(){
-  gpio_thread.join();
   return 0;
 }
 

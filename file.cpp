@@ -13,19 +13,35 @@ void file::write_file(std::string file, std::string data){
 
 std::string file::read_file(std::string file){
   std::string retval;
-  std::ifstream in(file);
-  if(in.is_open() == false){
-    throw std::runtime_error((std::string)"Unable to open file " + file);
+  if(exists(file) == false){
+    retval = "";
+  }else{
+    std::ifstream in(file);
+    if(in.is_open() == false){
+      throw std::runtime_error((std::string)"Unable to open file " + file);
+    }
+    std::string buffer;
+    while(getline(in, buffer)){
+      retval += buffer + "\n";
+    }
+    in.close();
   }
-  std::string buffer;
-  while(getline(in, buffer)){
-    retval += buffer + "\n";
-  }
-  in.close();
   return retval;
 }
 
 bool file::exists(std::string file){
+  std::string filename;
+  if(filename.find_first_of("/") != std::string::npos){
+    filename = file.substr(file.find_last_of("/"), file.size());
+  }else{
+    filename = file;
+  }
+  const int file_len = filename.size();
+  if(file_len >= 250){
+    print("file length is above 250, this is bad", P_ERR);
+  }else if(file_len >= 127){
+    print("file length is above 127, this shouldn't happen too much", P_WARN);
+  }
   struct stat sb;
   switch(stat(file.c_str(), &sb)){
   case EACCES:

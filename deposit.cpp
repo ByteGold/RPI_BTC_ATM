@@ -49,9 +49,38 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
       }
     }(&working_satoshi));
   tx::add_tx_out(tx_out_t(address, working_satoshi));
-  if(settings::get_setting("no_tx_blocks") == "true"){
-    tx::send_transaction_block();
+  return 0;
+}
+
+int deposit::init(){
+  const bool fee_1 = settings::get_setting("fee_1_address") != "" && settings::get_setting("fee_1_percent") != "";
+  const bool fee_2 = settings::get_setting("fee_2_address") != "" && settings::get_setting("fee_2_percent") != "";
+  const bool fee_3 = settings::get_setting("fee_3_address") != "" && settings::get_setting("fee_3_percent") != "";
+  const bool fee_4 = settings::get_setting("fee_4_address") != "" && settings::get_setting("fee_4_percent") != "";
+  try{
+    if(fee_1){
+      add_fee(fee_t(settings::get_setting("fee_1_address"), std::stold(settings::get_setting("fee_1_percent"))));
+    }
+    if(fee_2){
+      add_fee(fee_t(settings::get_setting("fee_2_address"), std::stold(settings::get_setting("fee_2_percent"))));
+    }
+    if(fee_3){
+      add_fee(fee_t(settings::get_setting("fee_3_address"), std::stold(settings::get_setting("fee_3_percent"))));
+    }
+    if(fee_4){
+      add_fee(fee_t(settings::get_setting("fee_4_address"), std::stold(settings::get_setting("fee_4_percent"))));
+    }
+  }catch(std::invalid_argument e){
+    print("invalid argument for add_fee, check for typos in settings.cfg", P_ERR);
+  }catch(std::out_of_range e){
+    print("out of range for add_fee, check for typos in settings.cfg", P_ERR);
+  }catch(std::exception e){
+    print("unknown exception for add_fee: " + (std::string)e.what(), P_ERR);
   }
+  return 0;
+}
+
+int deposit::close(){
   return 0;
 }
 

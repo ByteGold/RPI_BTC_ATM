@@ -13,38 +13,33 @@ bool running = true;
 int argc;
 char **argv;
 
-static std::vector<driver_t*> drivers;
-static std::thread driver_run_thread;
+std::vector<std::thread> threads;
+std::mutex threads_lock;
 
+static std::vector<driver_t*> drivers;
 static long double current_btc_rate = 0;
-static std::thread current_btc_rate_thread;
 
 static void init();
-static void terminate();
+static void terminate_();
 
 static void signal_handler(int signal){
   switch(signal){
   case SIGTERM:
-    print("Caught signal SIGTERM, terminating", P_CRIT);
-    break;
-  case SIGKILL:
-    print("Caught signal SIGKILL, terminating", P_CRIT);
+    print("Caught signal SIGTERM, terminating", P_NOTICE);
+    running = false;
     break;
   case SIGINT:
-    print("Caught signal SIGINT, terminating", P_CRIT);
+    print("Caught signal SIGINT, terminating", P_NOTICE);
+    running = false;
     break;
   default:
     break; // make this more complex
   }
-  running = false;
-  terminate();
-  exit(0);
 }
 
 static void init(){
   signal(SIGTERM, signal_handler);
   signal(SIGINT, signal_handler);
-  signal(SIGKILL, signal_handler);
   if(search_for_argv("--help") != -1){
     std::cout << "rpi_btc_atm: raspberry pi based bitcoin atm" << std::endl
 	      << "refer to settings.cfg for settings" << std::endl
@@ -53,9 +48,12 @@ static void init(){
     exit(0);
   }
   settings::set_settings();
+  // periodically rgrep with '::init(){" just to make sure I covered all of the
+  // bases. I don't want to make them variables at this point in time
   tx::init();
   gpio::init();
   qr::init();
+  deposit::init();
   // TODO: convert from parameters to cfg file
   if(settings::get_setting("ch_926_drv") == "true"){
     print("Enabling CH 926 driver", P_NOTICE);
@@ -70,45 +68,77 @@ static void init(){
   for(unsigned int i = 0;i < drivers.size();i++){
     drivers[i]->init();
   }
-  driver_run_thread = std::thread([](){
+  threads.emplace_back(std::thread([](){
     while(running){
       for(unsigned int i = 0;i < drivers.size();i++){
 	LOCK_RUN(drivers[i]->lock, drivers[i]->run(&drivers[i]->count));
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(5)); // reasonable
+      sleep_ms(DEFAULT_THREAD_SLEEP);
     }
-    });
-  current_btc_rate_thread = std::thread([](){
+      }));
+  threads.emplace_back(std::thread([](){
     while(running){
       try{
 	current_btc_rate = get_btc_rate(settings::get_setting("currency"));
       }catch(...){
 	print("error in updating the price, probably downtime", P_ERR);
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+      sleep_ms(5000);
       // I don't want to get the ATM banned, so don't speed it up
     }
-    });
+      }));
 }
 
-static void terminate(){
+static void terminate_(){
+  print("terminate has been called", P_NOTICE);
   if(running){
     print("Exited main loop while running, terminating safely from here", P_ERR);
     running = false; // stop threads safely
   }
+  LOCK_RUN(threads_lock, [](){
+      for(unsigned int i = 0;i < threads.size();i++){
+	try{
+	  print("joining thread " + std::to_string(i), P_NOTICE);
+	  threads[i].join();
+	}catch(std::system_error e){
+	  print("system error for threads", P_ERR);
+	  if(e.code() == std::errc::invalid_argument){
+	    print("invalid argument for threads", P_ERR);
+	  }else if(e.code() == std::errc::no_such_process){
+	    print("no such process for threads", P_ERR);
+	  }else if(e.code() == std::errc::resource_deadlock_would_occur){
+	    print("resource deadlock would occur for threads", P_ERR);
+	  }else{
+	    print("unknown error condition for threads", P_ERR);
+	  }
+	  throw e;
+	}catch(std::exception e){
+	  print("unknown exception for threads", P_ERR);
+	  throw e;
+	}
+      }
+      threads.clear();
+    }());
   for(unsigned int i = 0;i < drivers.size();i++){
     drivers[i]->close();
     delete drivers[i];
   }
   drivers.clear();
-  driver_run_thread.join();
   tx::close();
   gpio::close();
   qr::close();
+  deposit::close();
 }
 
 static void test_code(){
-  json_rpc::cmd("getdifficulty", {}, 1, "127.0.0.1", 8332);
+  //JSON works fine (I think)
+  //send tx to my personal Bitcoin wallet, just as a test
+  //tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 10000));
+  json_rpc::cmd("getaccountaddress", {"account"}, 565);
+  std::string result, error;
+  json_rpc::resp(&result, &error, 565);
+  print("RESULT:" + result, P_NOTICE);
+  print("ERROR:" + error, P_NOTICE);
 }
 
 static int loop(){
@@ -124,7 +154,6 @@ static int loop(){
     int old_count = 0;
     long int time_since_last_change = std::time(nullptr);
     bool accepting_money = true;
-    // print current amount of money to screen, exchange rate, markup, etc.
     while(accepting_money){
       for(unsigned int i = 0;i < drivers.size();i++){
 	if(drivers[i]->count != old_count){
@@ -155,6 +184,7 @@ int main(int argc_, char **argv_){
   argc = argc_;
   argv = argv_;
   init();
+  print("init finished", P_NOTICE);
   if(search_for_argv("--test-code") != -1){ // debugging/testing can stay argv
     test_code();
     running = false;
@@ -165,12 +195,13 @@ int main(int argc_, char **argv_){
   while(running){
     try{
       loop();
+      sleep_ms(100);
     }catch(const std::exception &e){
       std::cerr << e.what() << std::endl;
-      // don't use print due to possible locking problems
       running = false;
     }
   }
-  terminate();
+  terminate_();
+  sleep_ms(1000, true);
   return 0;
 }

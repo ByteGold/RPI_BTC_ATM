@@ -17,5 +17,7 @@ public:
 namespace deposit{
   void add_fee(fee_t fee_);
   int send(std::string address, satoshi_t satoshi, int type = DEPOSIT_SEND_DEPOSIT);  
+  int init();
+  int close();
 }
 #endif

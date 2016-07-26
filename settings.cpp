@@ -13,13 +13,16 @@ void settings::set_settings(){
   char setting[512];
   char var[512];
   while(std::getline(ss, temp_str)){
-    if(temp_str[0] == '#'){
+    if(temp_str.size() == 0){
+      continue;
+    }
+    if(temp_str[0] == '#' || temp_str[0] == '\n'){
       continue;
     }
     memset(setting, 0, 512);
     memset(var, 0, 512);
     if(std::sscanf(temp_str.c_str(), "%s = %s", setting, var) == EOF){
-      print("setting has no variable or otherwise indecipherable", P_ERR);
+      print("setting '" + temp_str + "' has no variable or otherwise indecipherable", P_ERR);
       continue; // no variable or otherwise indecipherable
     }
     print("setting " + (std::string)setting + " == " + (std::string)var, P_DEBUG);
@@ -32,13 +35,13 @@ void settings::set_settings(){
 // no real way to know the type, so leave that to the parent
 std::string settings::get_setting(std::string setting){
   std::string retval;
-  print("requesting setting " + setting, P_DEBUG);
-  LOCK_RUN(settings_lock, [](std::string *retval, std::string *setting){
+  print("requesting setting " + setting, P_SPAM);
+  LOCK_RUN(settings_lock, [](std::string *retval, std::string setting){
       for(unsigned int i = 0;i < settings_vector.size();i++){
-	if(settings_vector[i].first == *setting){
+	if(settings_vector[i].first == setting){
 	  *retval = settings_vector[i].second;
         }
       }
-    }(&retval, &setting));
+    }(&retval, setting));
   return retval;
 }

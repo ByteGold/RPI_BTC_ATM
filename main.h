@@ -15,5 +15,6 @@
 extern bool running;
 extern int argc;
 extern char** argv;
+extern std::vector<std::thread> threads;
 // string possibly containing it, variable
 #endif
