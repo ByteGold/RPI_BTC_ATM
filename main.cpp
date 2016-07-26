@@ -44,6 +44,8 @@ static void init(){
     std::cout << "rpi_btc_atm: raspberry pi based bitcoin atm" << std::endl
 	      << "refer to settings.cfg for settings" << std::endl
 	      << "usage:" << std::endl
+	      << "--debug\t\tdebug output" << std::endl
+	      << "--spam\t\tspam output" << std::endl
 	      << "--help\t\tdisplay this help screen" << std::endl;
     exit(0);
   }
@@ -83,7 +85,7 @@ static void init(){
       }catch(...){
 	print("error in updating the price, probably downtime", P_ERR);
       }
-      sleep_ms(5000);
+      sleep_ms(30*1000);
       // I don't want to get the ATM banned, so don't speed it up
     }
       }));
@@ -195,7 +197,6 @@ int main(int argc_, char **argv_){
   while(running){
     try{
       loop();
-      sleep_ms(100);
     }catch(const std::exception &e){
       std::cerr << e.what() << std::endl;
       running = false;

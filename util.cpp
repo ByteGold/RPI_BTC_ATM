@@ -71,8 +71,18 @@ long double get_btc_rate(std::string currency){
   // 3 character code
   if(currency == "USD" || currency == "usd"){
     system_wait_for_file("touch 24hrprice && rm -r 24hrprice && wget -q https://blockchain.info/q/24hrprice", "24hrprice");
-    long double price = std::stold(file::read_file("24hrprice"));
+    long double price;
+    try{
+      price = std::stold(file::read_file("24hrprice"));
+    }catch(std::invalid_argument e){
+      print_("invalid argument for get_btc_rate", P_ERR);
+    }catch(std::out_of_range e){
+      print_("out of range for get_btc_rate", P_ERR);
+    }catch(...){
+      print_("unknown exception for get_btc_rate", P_ERR);
+    }
     print("the price is " + std::to_string(price) + " per BTC", P_NOTICE);
+    system_("touch 24hrprice && rm -r 24hrprice");
     return price;
   }else{
     print("your plebian currency isn't supported yet", P_CRIT);
