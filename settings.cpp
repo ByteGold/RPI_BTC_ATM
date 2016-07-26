@@ -6,8 +6,8 @@
 static std::vector<std::pair<std::string, std::string> > settings_vector;
 static std::mutex settings_lock;
 
-void settings::set_settings(){
-  std::string cfg_file = file::read_file("settings.cfg");
+void settings::set_settings(std::string settings_file){
+  std::string cfg_file = file::read_file(settings_file);
   std::stringstream ss(cfg_file);
   std::string temp_str;
   char setting[512];
@@ -25,7 +25,18 @@ void settings::set_settings(){
       print("setting '" + temp_str + "' has no variable or otherwise indecipherable", P_ERR);
       continue; // no variable or otherwise indecipherable
     }
-    print("setting " + (std::string)setting + " == " + (std::string)var, P_DEBUG);
+    char var_print[1024];
+    if(get_setting("hide_values") == "true"){
+      memset(var_print, 0, 1024);
+      memset(var_print, '*', strlen(var));
+    }else{
+      memcpy(var_print, var, 512);
+    }
+    print("setting " + (std::string)setting + " == " + var_print, P_DEBUG);
+    if(memcmp(setting, "import", 6) == 0){
+      print("importing external file", P_NOTICE);
+      set_settings(var);
+    }
     LOCK_RUN(settings_lock, [](char *setting, char *var){
 	settings_vector.push_back(std::make_pair(setting, var));
       }(setting, var));
