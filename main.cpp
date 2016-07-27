@@ -138,6 +138,8 @@ static void test_code(){
 	//tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 10000));
 	json_rpc::cmd("getaccountaddress", {"account"}, 565);
 	std::string result, error;
+	print("sleeping for 10 seconds to make sure a response is processed", P_NOTICE);
+	sleep_ms(10000);
 	json_rpc::resp(&result, &error, 565);
 	print("RESULT:" + result, P_NOTICE);
 	print("ERROR:" + error, P_NOTICE);

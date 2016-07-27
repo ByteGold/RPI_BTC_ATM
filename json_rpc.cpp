@@ -133,7 +133,7 @@ static int json_rpc_send_query(std::string url, std::string json_query){
 	curl_easy_perform(curl);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, json_rpc_curl_writeback);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, nullptr);
-	if(search_for_argv("--debug") != -1){
+	if(search_for_argv("--debug") != -1 || search_for_argv("--spam") != -1){
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 	}else{
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);

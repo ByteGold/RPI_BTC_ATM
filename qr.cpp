@@ -75,7 +75,7 @@ std::string qr::read_from_webcam(){
 	std::string retval;
 	LOCK_RUN(qr_data_lock, [](std::string *retval){
 			*retval = qr_data;
-			print("read qr code " + qr_data + " from qr_data", P_NOTICE);
+			print("read qr code " + qr_data + " from qr_data", P_SPAM);
 			qr_data = "";
 		}(&retval));
 	qr_data = "";

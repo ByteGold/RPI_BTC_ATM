@@ -1,11 +1,3 @@
-There are some short-comings with running this ATM, but it shouldn't be felt by most people. Here is a list of those shortcomings.
+Syntax is K&R C with a tab size of 8.
 
-      There is a recommended minimum transaction volume of 100K satoshi (worth about 60 cents). This number is derived from the 1000 satoshi minimum transaction fee to be accepted into the network. Due to the architecture explained in the next paragraph, these fees are not coming from the money given, but are coming directly from the wallet associated with the ATM. This transaction volume is hard-coded currently, but flags in the future should be set to change this value. Although this is the minimum for one transaction, that doesn't mean people can't buy less than that. The next paragraph explains this.
-
-      A Bitcoin transaction has inputs and outputs. Anybody can put any amount of money into the machine and have that money sent to their wallet, but the combined outputs have to be at least 100K satoshi. This means that multiple peoples' deposits are lumped into one Bitcoin "transaction" and sent to the network when the set minimum is reached (or after the transaction is X minutes old).
-
-      Due to security precautions that I will talk about in the next paragraph, there is a maximum balance that the RPi can access. In the event that somebody makes a large deposit, their deposit will be broken up into smaller Bitcoin transactions, each with the max amount of money in that wallet. When another program realizes that the money ran out, it will send more money to that address (with a possible delay to prevent theft), which will then be sent to the person who made the transaction. This loop repeats until there entire transaction is complete (based upon how many "deposits" the program splits that into).
-
-There are some security precautions I have made to keep the risk of running this ATM low.
-
-      There is a maximum balance that the wallet can have (as mentioned above). There should be a machine running another program somewhere that can see how much money the RPi has access to, and fills the wallet to the maximum wallet balance when it passes a certain threshold (50%?). If this machine isn't running, and the RPi Bitcoin wallet runs out of money, then the transaction will be held until there is enough money to send the transaction. Some warning should go off (LED turning on, screen saying something), but nothing specific is guaranteed by the implementor.
+You REALLY should go through the settings.cfg file and set sane settings for your use case. I regularly enable and disable a lot of core parts for the sake of debugging (GPIO, QR codes, dynamic fees).
