@@ -118,3 +118,35 @@ int system_wait_for_file(std::string command, std::string file){
 	}
 	return retval;
 }
+
+static std::string to_lower(std::string a){
+	std::string retval = a;
+	for(int i = 0;i < (int)retval.size();i++){
+		retval[i] = std::tolower(retval[i]);
+	}
+	return retval;
+}
+
+long double get_mul_to_btc(std::string currency){
+	long double mul = -1;
+	if(to_lower(currency) == "satoshi"){
+		mul = 1.0/100000000;
+	}else if(to_lower(currency) == "cbtc"){
+		mul = 1.0/100;
+	}else if(to_lower(currency) == "mbtc"){
+		mul = 1.0/1000;
+	}else if(to_lower(currency) == "ubtc" || to_lower(currency) == "bit"){
+		mul = 1.0/1000000;
+	}else if(to_lower(currency) == "btc"){
+		mul = 1.0;
+	}else{
+		throw std::runtime_error("invalid currency");
+	}
+	if(mul == 0){
+		throw std::logic_error("mul == 0");
+	}
+	if(mul < 0){
+		throw std::logic_error("mul < 0");
+	}
+	return mul;
+}

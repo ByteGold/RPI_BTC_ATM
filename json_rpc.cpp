@@ -63,15 +63,87 @@ std::string json_set_var(std::string type, std::vector<std::string> data){
 	return JSON_PARENTHESIS(type) + ":" + JSON_BRACKETS(vector_str);
 }
 
+/*
+  simple function to find the value to a variable in JSON
+  Does NOT recognize braces or brackets, just searches
+ */
+
+static std::string json_simple_find_var(const std::string json_raw, const std::string var){
+	std::string retval;
+	const size_t var_start = json_raw.find(var);
+	if(var_start == std::string::npos){
+		print("unable to find var in json_raw", P_ERR);
+		throw std::runtime_error("no var in json_raw");
+	}
+	const size_t start_pos = var_start + var.size();
+	size_t cur_pos = start_pos, end_pos = 0;
+	char ending_char = 0;
+	for(;cur_pos < json_raw.size();cur_pos++){
+		if(json_raw[cur_pos] == ':'){
+			cur_pos++;
+			ending_char = json_raw[cur_pos];
+			break;
+		}
+	}
+	end_pos = cur_pos; // skip past the colon
+	if(ending_char != '\"'){
+		ending_char = ',';
+		// could be wrong for braces, but that is taken care of
+		// in the code below
+	}
+	bool end_of_var = false;
+	while(end_of_var == false){
+		const char current_char = json_raw[end_pos];
+		if(end_pos != start_pos){
+			const bool end_of_last = current_char == '}';
+			const bool end_of_json = current_char == ending_char;
+			if(end_of_json || end_of_last){
+				end_of_var = true;
+				continue;
+			}
+		}
+		end_pos++;
+	}
+	if(ending_char == '\"'){
+		end_pos++;
+		// ending_char is in the front, so uniformity means it stays
+	}
+	try{
+		retval = json_raw.substr(cur_pos, end_pos-cur_pos);
+	}catch(std::out_of_range e){
+		print("out of range for json_simple_find_var retval", P_ERR);
+		throw e;
+	}catch(std::bad_alloc e){
+		print("bad alloc for json_simple_find_var retval", P_ERR);
+		throw e;
+	}catch(std::exception e){
+		print("unknown exception for json_simple_find_var retval", P_ERR);
+		throw e;
+	}
+	P_V_S(var, P_DEBUG);
+	P_V(start_pos, P_DEBUG);
+	P_V(end_pos, P_DEBUG);
+	P_V(cur_pos, P_DEBUG);
+	P_V_C(ending_char, P_DEBUG);
+	P_V_S(retval, P_DEBUG);
+	return retval;
+}
+
 static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *userdata){
 	if(userdata != nullptr){
 		print("userdata is not a nullptr, why?", P_ERR);
 	}
+	if(size != 1){
+		print("multiple requests at one time", P_ERR);
+		// shouldn't happen, we aren't near breaking any MTU
+	}	
 	print("json_rpc_curl_writeback received " + (std::string)ptr, P_DEBUG);
 	json_rpc_resp_t response;
-	std::string raw_json = std::string(ptr, size);
+	std::string raw_json = std::string(ptr, nmemb);
+	print("interpreted raw_json as '" + raw_json + "'", P_DEBUG);
 	try{
-		response.result = raw_json.substr(raw_json.find_first_of("result")+3, raw_json.find_first_of("error")-7-raw_json.find_first_of("result")+3);
+		response.result = json_simple_find_var(raw_json, "result");
+		print("interpreted response.result as '" + response.result + "'", P_DEBUG);
 	}catch(std::out_of_range e){
 		print("out of range for response.result", P_ERR);
 	}catch(std::bad_alloc e){
@@ -80,7 +152,9 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
 		print("unknown exception for response.result", P_ERR);
 	}
 	try{
-		response.error = raw_json.substr(raw_json.find_first_of("error")+3, raw_json.find_first_of("id")-4-raw_json.find_first_of("error")+3);
+		
+		response.error = json_simple_find_var(raw_json, "code");
+		print("interpreted response.error as '" + response.error + "'", P_DEBUG);
 	}catch(std::out_of_range e){
 		print("out of range for response.error", P_ERR);
 	}catch(std::bad_alloc e){
@@ -89,20 +163,7 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
 		print("unknown exception for response.error", P_ERR);
 	}
 	try{
-		std::string resp_id_str;
-		try{
-			resp_id_str = raw_json.substr(raw_json.find("id")+3, raw_json.find("}")-raw_json.find("id")+3);
-		}catch(std::out_of_range e){
-			print("out of range for resp_id_str", P_ERR);
-			throw e;
-		}catch(std::bad_alloc e){
-			print("bad alloc for resp_id_str", P_ERR);
-			throw e;
-		}catch(...){
-			print("unknown exception for resp_id_str", P_ERR);
-			throw std::runtime_error("resp_id_str");
-		}
-		response.id = std::stoi(resp_id_str);
+		response.id = std::stoi(json_simple_find_var(raw_json, "id"));
 	}catch(std::invalid_argument e){
 		print("invalid argument for response.id", P_ERR);
 	}catch(std::out_of_range e){
@@ -119,7 +180,7 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
 			}
 			responses.push_back(response);
 		}(response));
-	return 0;
+	return nmemb*size; // return bytes taken care of
 }
 
 static int json_rpc_send_query(std::string url, std::string json_query){
@@ -157,6 +218,8 @@ int json_rpc::cmd(std::string method, std::vector<std::string> params, int id, s
 			json_rpc_password = settings::get_setting("json_rpc_password");
 		}
 	}
+	print("json_rpc_username:" + json_rpc_username, P_DEBUG);
+	print("json_rpc_password:" + json_rpc_password, P_DEBUG);
 	if(json_rpc_port == 0){
 		if(settings::get_setting("json_rpc_port") != ""){
 			try{
@@ -209,4 +272,21 @@ int json_rpc::resp(std::string *result, std::string *error, int id){
 		return 0;
 	}
 	return -1;
+}
+
+int json_rpc::throw_on_error(int id){
+	std::string result, code_str;
+	resp(&result, &code_str, id);
+	int code = 0; // 0 means no error?
+	try{
+		code = std::stoi(code_str);
+	}catch(std::invalid_argument e){
+		print("invalid argument for throw_on_error", P_ERR);
+	}catch(std::out_of_range e){
+		print("out of range for throw_on_error", P_ERR);
+	}catch(...){
+		print("unknown exception for throw_on_error", P_ERR);
+	}
+	print("json_rpc error code is " + std::to_string(code), P_ERR);
+	throw code;
 }

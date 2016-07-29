@@ -97,6 +97,11 @@ static void terminate_(){
 		print("Exited main loop while running, terminating safely from here", P_ERR);
 		running = false; // stop threads safely
 	}
+	/*
+	  All threads should terminate when running is false
+	  Sleep will be interrupted (sleep_ms) if running is false to speed
+	  up the process.
+	 */
 	LOCK_RUN(threads_lock, [](){
 			for(unsigned int i = 0;i < threads.size();i++){
 				try{
@@ -130,19 +135,19 @@ static void terminate_(){
 	gpio::close();
 	qr::close();
 	deposit::close();
+	system_("touch 24hrprice && rm -r 24hrprice"); // touch for no errors
 }
 
 static void test_code(){
 	//JSON works fine (I think)
-	//send tx to my personal Bitcoin wallet, just as a test
-	//tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 10000));
-	json_rpc::cmd("getaccountaddress", {"account"}, 565);
-	std::string result, error;
-	print("sleeping for 10 seconds to make sure a response is processed", P_NOTICE);
-	sleep_ms(10000);
-	json_rpc::resp(&result, &error, 565);
-	print("RESULT:" + result, P_NOTICE);
-	print("ERROR:" + error, P_NOTICE);
+	// send this to the donation wallet
+	//tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 50000));
+	json_rpc::cmd("walletlock", {}, 420);
+	try{
+		json_rpc::throw_on_error(420);
+	}catch(int a){
+		print("caught exception " + std::to_string(a), P_ERR);
+	}
 }
 
 static int loop(){

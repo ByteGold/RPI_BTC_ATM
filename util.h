@@ -25,6 +25,13 @@ extern long double get_btc_rate(std::string currency);
 extern int system_(std::string str);
 extern int system_write(std::string command, std::string file);
 extern int system_wait_for_file(std::string command, std::string file);
+extern long double get_mul_to_btc(std::string currency);
 #define LOCK_RUN(a, b) a.lock();try{b;}catch(std::exception e){std::cerr << "Caught " << e.what() << " in LOCK_RUN" << std::endl;a.unlock();throw e;};a.unlock();
+// print var
+#define P_V(a, b) print((std::string)#a + " == '" + std::to_string(a) + "'", b);
+// print var string
+#define P_V_S(a, b) print((std::string)#a + " == '" + a + "'", b);
+// print var char
+#define P_V_C(a, b) print((std::string)#a + " == '" + std::string(&a, 1) + "'", b);
 // cannot use print here
 #endif

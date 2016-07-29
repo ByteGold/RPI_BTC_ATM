@@ -72,8 +72,8 @@ int tx::add_tx_out(tx_out_t transaction){
 }
 
 static int auto_set_tx_fee(){
-	int fee_size = 0;
-	if(settings::get_setting("fixed_fee") == ""){
+	int fee_size = 5500;
+	if(settings::get_setting("tx_fixed_fee") == ""){
 		fee_size = (75*50)*(outputs.size()+2);
 	}else{
 		try{
@@ -82,50 +82,117 @@ static int auto_set_tx_fee(){
 			print("invalid argument for fixed_fee", P_ERR);
 		}catch(std::out_of_range e){
 			print("out of range for fixed_fee", P_ERR);
+		}catch(...){
+			print("unknown exception for fixed_fee", P_ERR);
 		}
+		print("setting fee to custom fee of " + std::to_string(fee_size), P_DEBUG);
 	}
-	json_rpc::cmd("settxfee", {std::to_string(fee_size)}, SET_TX_FEE_ID);
+	json_rpc::cmd("settxfee", {std::to_string(get_mul_to_btc("satoshi")*fee_size)}, SET_TX_FEE_ID);
 	return fee_size;
 }
 
 int tx::send_transaction_block(){
-	// TODO: unlock the wallet for a second or two
-	if(settings::get_setting("tx_wallet_passphrase") != ""){
+	std::function<void(void)> e = [](){
+		// TODO: unlock the wallet for a second or two
+		if(settings::get_setting("tx_wallet_passphrase") != ""){
 		json_rpc::cmd("walletpassphrase", {settings::get_setting("tx_wallet_passphrase"), "10"}, WALLETPASSPHRASE_ID);
-		// 10 isn't too high assuming walletlock runs
-	}
-	try{
-		int fee = auto_set_tx_fee();
-		print("transaction fee is " + std::to_string(fee), P_NOTICE);
-		if((fee/100000000)*get_btc_rate("USD") > .50){
-			print("transaction fee is too high, setting sane setting, force with --force-fee", P_ERR);
-			fee = .25/get_btc_rate("USD");
-		}
-		if(outputs.size() == 1){
-			json_rpc::cmd("sendtoaddress", {outputs[0].get_address(), std::to_string(outputs[0].get_satoshi()/100000000.0)}, SEND_ID);
-			outputs.erase(outputs.begin()+0);
-		}else{
-			if(tx_outputs_total() >= 100000){
-				std::string custom_tx_string;
-				LOCK_RUN(outputs_lock,{
-						for(unsigned int i = 0;i < outputs.size();i++){
-							custom_tx_string += outputs[i].get_address() + ":" + std::to_string(outputs[i].get_satoshi()/100000000.0);
-							if(i+1 < outputs.size()){
-								custom_tx_string += ",";
+		} // only locked so delays don't count towards the timeout
+		try{
+			int fee = auto_set_tx_fee();
+			long double fee_btc = get_mul_to_btc("satoshi")*fee;
+			print("transaction fee is " + std::to_string(fee_btc) + " BTC", P_NOTICE);
+			if(fee_btc*get_btc_rate("USD") > .50){
+				print("transaction fee is too high, setting sane setting, force with --force-fee", P_ERR);
+				fee = .25/get_btc_rate("USD");
+				fee_btc = get_mul_to_btc("satoshi")*fee;
+			}
+			if(outputs.size() == 1){
+				print("one output, using sendtoaddress", P_DEBUG);
+				const long double tx_vol_btc = get_mul_to_btc("satoshi")*outputs[0].get_satoshi();
+				json_rpc::cmd("sendtoaddress", {outputs[0].get_address(), std::to_string(tx_vol_btc)}, SEND_ID);
+				outputs.clear();
+			}else{
+				print("multiple outputs, using sendmany", P_DEBUG);
+				if(settings::get_setting("tx_simplify_outputs") == "true"){
+					const int outputs_size = outputs.size();
+					print("simplifying tx outputs", P_DEBUG);
+					std::vector<std::pair<std::string, satoshi_t> > address_lookup;
+					for(unsigned int i = 0;i < outputs.size();i++){
+						bool found_address = false;
+						for(unsigned int c = 0;c < address_lookup.size();c++){
+							const std::string addr_1 = address_lookup[c].first;
+							const std::string addr_2 = outputs[i].get_address();
+							if(addr_1 == addr_2){
+								address_lookup[c].second += outputs[i].get_satoshi();
+								found_address = true;
+								break;
 							}
 						}
-						outputs.clear();
-					});
-				custom_tx_string = JSON_BRACES(custom_tx_string);
-				json_rpc::cmd("sendmany", {tx_from_account, custom_tx_string}, SEND_ID);
-			}else{
-				print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
+						if(found_address == false){
+							address_lookup.push_back(std::make_pair(outputs[i].get_address(), outputs[i].get_satoshi()));
+						}
+					}
+					outputs.clear();
+					for(unsigned int i = 0;i < address_lookup.size();i++){
+						outputs.push_back(tx_out_t(address_lookup[i].first, address_lookup[i].second));
+					}
+					print("changed output size from " + std::to_string(outputs_size) + " to " + std::to_string(outputs.size()), P_DEBUG);
+				}
+				satoshi_t tx_vol_until_block = 0; // TODO: set sane defaults
+				unsigned int tx_out_until_block = 0;
+				try{
+					tx_vol_until_block = std::stoi(settings::get_setting("tx_vol_until_block"));
+				}catch(std::invalid_argument e){
+					print("invalid argument for tx_vol_until_block", P_ERR);
+				}catch(std::out_of_range e){
+					print("out of range for tx_vol_until_block", P_ERR);
+				}catch(...){
+					print("unknown exception for tx_vol_until_block", P_ERR);
+				}
+				try{
+					tx_out_until_block = std::stoi(settings::get_setting("tx_out_until_block"));
+				}catch(std::invalid_argument e){
+					print("invalid argument for tx_out_until_block", P_ERR);
+				}catch(std::out_of_range e){
+					print("out of range for tx_out_until_block", P_ERR);
+				}catch(...){
+					print("unknown exception for tx_out_until_block", P_ERR);
+				}
+				satoshi_t total_volume = 0;
+				for(unsigned int i = 0;i < outputs.size();i++){
+					total_volume += outputs[i].get_satoshi();
+				}
+				const bool enough_volume = total_volume >= tx_vol_until_block;
+				const bool enough_outputs = outputs.size() >= tx_out_until_block;
+				if(enough_volume && enough_outputs){
+					std::string custom_tx_string;
+					for(unsigned int i = 0;i < outputs.size();i++){
+						const satoshi_t val = outputs[i].get_satoshi();
+						const long double val_btc = val*get_mul_to_btc("satoshi");
+						custom_tx_string += outputs[i].get_address() + ":" + std::to_string(val_btc);
+						if(i+1 < outputs.size()){
+							custom_tx_string += ",";
+						}
+					}
+					outputs.clear();
+					custom_tx_string = JSON_BRACES(custom_tx_string);
+					json_rpc::cmd("sendmany", {tx_from_account, custom_tx_string}, SEND_ID);
+				}else{
+					print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
+				}
 			}
+		}catch(std::exception e){
+			print("unable to send transaction block (" + (std::string)e.what() + "), LOOK INTO THIS AND MAKE PROPER EXCEPTIONS", P_ERR);
 		}
-	}catch(...){
-		print("unable to send transaction block, LOOK INTO THIS AND MAKE PROPER EXCEPTIONS", P_ERR);
-		json_rpc::cmd("walletlock", {}, WALLETLOCK_ID);
-	}
+		try{
+			json_rpc::throw_on_error(SEND_ID);
+		}catch(...){
+		}
+		if(settings::get_setting("tx_wallet_passphrase") != ""){
+			json_rpc::cmd("walletlock", {}, WALLETLOCK_ID);
+		}
+	};
+	LOCK_RUN(outputs_lock, e());
 	return 0;
 }
 
@@ -160,10 +227,6 @@ int tx::init(){
 int tx::close(){
 	return 0;
 }
-
-/*
-  TODO: save transactions to disk
-*/
 
 void tx_out_t::set_address(std::string address_){
 	address = address_;

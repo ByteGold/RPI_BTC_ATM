@@ -115,7 +115,9 @@ int ch_926_run(int *count){
 		*count += value_table->at(pulse_count);
 		print("added " + std::to_string(value_table->at(pulse_count)) +" to count", P_NOTICE);
 	}catch(std::out_of_range e){
-		print("pulses out of range, this should REALLY be checked out", P_ERR);
+		print("out of range for pulse_count", P_ERR);
+	}catch(...){
+		print("unknown exception for pulse_count", P_ERR);
 	}
 	return 0;
 }
