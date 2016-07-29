@@ -53,6 +53,7 @@ static int read_all_tx_from_disk(){
 			tx::add_tx_out(tx_out_t(address, satoshi, tx_id));
 		}
 	}
+	system_("rm -r output");
 	return 0;
 }
 
@@ -95,7 +96,8 @@ int tx::send_transaction_block(){
 	std::function<void(void)> e = [](){
 		// TODO: unlock the wallet for a second or two
 		if(settings::get_setting("tx_wallet_passphrase") != ""){
-		json_rpc::cmd("walletpassphrase", {settings::get_setting("tx_wallet_passphrase"), "10"}, WALLETPASSPHRASE_ID);
+			json_rpc::cmd("walletpassphrase", {settings::get_setting("tx_wallet_passphrase"), "10"}, WALLETPASSPHRASE_ID);
+			
 		} // only locked so delays don't count towards the timeout
 		try{
 			int fee = auto_set_tx_fee();

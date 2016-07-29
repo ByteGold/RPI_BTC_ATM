@@ -136,7 +136,7 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
 	if(size != 1){
 		print("multiple requests at one time", P_ERR);
 		// shouldn't happen, we aren't near breaking any MTU
-	}	
+	}
 	print("json_rpc_curl_writeback received " + (std::string)ptr, P_DEBUG);
 	json_rpc_resp_t response;
 	std::string raw_json = std::string(ptr, nmemb);
@@ -289,4 +289,117 @@ int json_rpc::throw_on_error(int id){
 	}
 	print("json_rpc error code is " + std::to_string(code), P_ERR);
 	throw code;
+}
+
+int json_rpc::error_check(int id){
+	int retval;
+	try{
+		throw_on_error(id);
+	}catch(const int e){
+		retval = e;
+		switch(e){
+		case RPC_INVALID_REQUEST:
+			print("invalid request for throw_on_error", P_ERR);
+			break;
+		case RPC_METHOD_NOT_FOUND:
+			print("method not found for throw_on_error", P_ERR);
+			break;
+		case RPC_INVALID_PARAMS:
+			print("invalid params for throw_on_error", P_ERR);
+			break;
+		case RPC_INTERNAL_ERROR:
+			print("internal error for throw_on_error", P_ERR);
+			break;
+		case RPC_PARSE_ERROR:
+			print("parse error for throw_on_error", P_ERR);
+			break;
+		case RPC_MISC_ERROR:
+			print("misc error for throw_on_error", P_ERR);
+			break;
+		case RPC_FORBIDDEN_BY_SAFE_MODE:
+			print("forbidden by safe mode for throw_on_error", P_ERR);
+			break;
+		case RPC_TYPE_ERROR:
+			print("type error for throw_on_error", P_ERR);
+			break;
+		case RPC_INVALID_ADDRESS_OR_KEY:
+			print("invalid address or key for throw_on_error", P_ERR);
+			break;
+		case RPC_OUT_OF_MEMORY:
+			print("out of memory for throw_on_error", P_ERR);
+			break;
+		case RPC_INVALID_PARAMETER:
+			print("invalid parameter for throw_on_error", P_ERR);
+			break;
+		case RPC_DATABASE_ERROR:
+			print("database error for throw_on_error", P_ERR);
+			break;
+		case RPC_DESERIALIZATION_ERROR:
+			print("deserialization error for throw_on_error", P_ERR);
+			break;
+		case RPC_VERIFY_ERROR:
+			print("verify error for throw_on_error", P_ERR);
+			break;
+		case RPC_VERIFY_REJECTED:
+			print("verify rejected for throw_on_error", P_ERR);
+			break;
+		case RPC_VERIFY_ALREADY_IN_CHAIN:
+			print("already in chain for throw_on_error", P_ERR);
+			break;
+		case RPC_IN_WARMUP:
+			print("in warmup for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_NOT_CONNECTED:
+			print("client not connected for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_IN_INITIAL_DOWNLOAD:
+			print("client in initial download for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_NODE_ALREADY_ADDED:
+			print("node already added for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_NODE_NOT_ADDED:
+			print("node not added for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_NODE_NOT_CONNECTED:
+			print("node not connected for throw_on_error", P_ERR);
+			break;
+		case RPC_CLIENT_INVALID_IP_OR_SUBNET:
+			print("invalid ip or subnet for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_ERROR:
+			print("wallet error for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_INSUFFICIENT_FUNDS:
+			print("insufficient funds for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_INVALID_ACCOUNT_NAME:
+			print("invalid account name for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_KEYPOOL_RAN_OUT:
+			print("keypool ran out for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_UNLOCK_NEEDED:
+			print("wallet unlock needed for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_PASSPHRASE_INCORRECT:
+			print("passphrase incorrect for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_WRONG_ENC_STATE:
+			print("wrong enc state for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_ENCRYPTION_FAILED:
+			print("encryption failed for throw_on_error", P_ERR);
+			break;
+		case RPC_WALLET_ALREADY_UNLOCKED:
+			print("wallet already unlocked for throw_on_error", P_ERR);
+			break;
+		default:
+			print("unknown exception for throw_on_error", P_ERR);
+			break;
+		}
+	}catch(...){
+		print("unknown exception for throw_on_error", P_ERR);
+	}
+	return retval;
 }

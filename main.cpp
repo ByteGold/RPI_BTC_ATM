@@ -136,6 +136,7 @@ static void terminate_(){
 	qr::close();
 	deposit::close();
 	system_("touch 24hrprice && rm -r 24hrprice"); // touch for no errors
+	system_("touch output && rm -r output");
 }
 
 static void test_code(){
@@ -143,11 +144,7 @@ static void test_code(){
 	// send this to the donation wallet
 	//tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 50000));
 	json_rpc::cmd("walletlock", {}, 420);
-	try{
-		json_rpc::throw_on_error(420);
-	}catch(int a){
-		print("caught exception " + std::to_string(a), P_ERR);
-	}
+	json_rpc::error_check(420);
 }
 
 static int loop(){
