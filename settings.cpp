@@ -2,9 +2,10 @@
 #include "settings.h"
 #include "file.h"
 #include "util.h"
+#include "lock.h"
 
 static std::vector<std::pair<std::string, std::string> > settings_vector;
-static std::mutex settings_lock;
+static lock_t settings_lock;
 
 void settings::set_settings(std::string settings_file){
 	std::string cfg_file = file::read_file(settings_file);

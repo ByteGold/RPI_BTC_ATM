@@ -1,6 +1,7 @@
 #include "main.h"
 #include "util.h"
 #include "file.h"
+#include "lock.h"
 
 int print_level = -1;
 
@@ -44,7 +45,7 @@ static std::string print_level_text(int level){
 	throw std::runtime_error("invalid print level");
 }
 
-std::mutex print_lock;
+lock_t print_lock;
 
 void print(std::string data, int level){
 	LOCK_RUN(print_lock, [](std::string data, int level){

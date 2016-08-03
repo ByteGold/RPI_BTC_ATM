@@ -2,13 +2,14 @@
 #include "util.h"
 #include "json_rpc.h"
 #include "settings.h"
+#include "lock.h"
 
 static int json_rpc_port = DEFAULT_NODE_PORT;
 static std::string json_rpc_username;
 static std::string json_rpc_password;
 
-static std::vector<json_rpc_resp_t> responses;
-static std::mutex responses_lock;
+static std::vector<json_rpc_query_t> queries;
+static lock_t queries_lock;
 
 /*
   This interfaces with a Bitcoin node installed on the Raspberry Pi. The Bitcoin
@@ -138,71 +139,106 @@ static int json_rpc_curl_writeback(char *ptr, size_t size, size_t nmemb, void *u
 		// shouldn't happen, we aren't near breaking any MTU
 	}
 	print("json_rpc_curl_writeback received " + (std::string)ptr, P_DEBUG);
-	json_rpc_resp_t response;
-	std::string raw_json = std::string(ptr, nmemb);
-	print("interpreted raw_json as '" + raw_json + "'", P_DEBUG);
-	try{
-		response.result = json_simple_find_var(raw_json, "result");
-		print("interpreted response.result as '" + response.result + "'", P_DEBUG);
-	}catch(std::out_of_range e){
-		print("out of range for response.result", P_ERR);
-	}catch(std::bad_alloc e){
-		print("bad alloc for response.result", P_ERR);
-	}catch(...){
-		print("unknown exception for response.result", P_ERR);
-	}
-	try{
-		
-		response.error = json_simple_find_var(raw_json, "code");
-		print("interpreted response.error as '" + response.error + "'", P_DEBUG);
-	}catch(std::out_of_range e){
-		print("out of range for response.error", P_ERR);
-	}catch(std::bad_alloc e){
-		print("bad alloc for response.error", P_ERR);
-	}catch(...){
-		print("unknown exception for response.error", P_ERR);
-	}
-	try{
-		response.id = std::stoi(json_simple_find_var(raw_json, "id"));
-	}catch(std::invalid_argument e){
-		print("invalid argument for response.id", P_ERR);
-	}catch(std::out_of_range e){
-		print("out of range for response.id", P_ERR);
-	}catch(...){
-		print("unknown exception for response.id", P_ERR);
-	}
-	LOCK_RUN(responses_lock, [](json_rpc_resp_t response){
-			for(unsigned int i = 0;i < responses.size();i++){
-				if(responses[i].id == response.id){
-					responses.erase(responses.begin()+i);
-					// shouldn't be a difference between deleting vs setting right now
-				}
+	auto queries_function = [](char *ptr, size_t size, size_t nmemb){
+		std::string raw_json = std::string(ptr, size*nmemb);
+		int tmp_id = -1;
+		long int query_entry = -1;
+		print("interpreted raw_json as '" + raw_json + "'", P_DEBUG);
+		try{
+			tmp_id = std::stoi(json_simple_find_var(raw_json, "id"));
+			print("interpreted tmp_id as " + std::to_string(tmp_id), P_DEBUG);
+		}catch(std::invalid_argument e){
+			print("invalid argument for tmp_id", P_ERR);
+			return;
+		}catch(std::out_of_range e){
+			print("out of range for tmp_id", P_ERR);
+			return;
+		}catch(...){
+			print("unknown exception for tmp_id", P_ERR);
+			return;
+		}
+		for(unsigned int i = 0;i < queries.size();i++){
+			if(queries[i].id == tmp_id){
+				query_entry = (long int)i;
+				break;
+			}else{
+				P_V(queries[i].id, P_SPAM);
+				P_V(tmp_id, P_SPAM);
 			}
-			responses.push_back(response);
-		}(response));
+		}
+		if(query_entry == -1){
+			print("cannot find json query in queries list", P_ERR);
+			throw std::runtime_error("no json query in vector tmp_id:" + std::to_string(tmp_id));
+		}else{
+			print("found json query", P_DEBUG);
+		}
+		try{
+			queries[query_entry].result = json_simple_find_var(raw_json, "result");
+			print("interpreted queries[query_entry].result as '" + queries[query_entry].result + "'", P_DEBUG);
+		}catch(std::out_of_range e){
+			print("out of range for queries[query_entry].result", P_ERR);
+		}catch(std::bad_alloc e){
+			print("bad alloc for queries[query_entry].result", P_ERR);
+		}catch(...){
+			print("unknown exception for queries[query_entry].result", P_ERR);
+		}
+		try{
+			queries[query_entry].error_code = std::stoi(json_simple_find_var(raw_json, "code"));
+			print("interpreted queries[query_entry].error_code as '" + std::to_string(queries[query_entry].error_code) + "'", P_DEBUG);
+		}catch(std::invalid_argument e){
+			print("invalid argument for queries[query_entry].error_code", P_ERR);
+		}catch(std::out_of_range e){
+			print("out of range for queries[query_entry].error_code", P_ERR);
+		}catch(...){
+			print("unknown exception for queries[query_entry].error_code", P_ERR);
+		}
+		int query_status = json_rpc::error_check(queries[query_entry].id);
+		if(query_status == 0){ // check if this is no error
+			queries[query_entry].status = JSON_RPC_QUERY_OK;
+		}else{
+			queries[query_entry].status = JSON_RPC_QUERY_ERROR;
+		}
+	};
+	auto queries_function_pass = std::bind(queries_function, ptr, size, nmemb);
+	LOCK_RUN(queries_lock, queries_function_pass());
 	return nmemb*size; // return bytes taken care of
 }
 
-static int json_rpc_send_query(std::string url, std::string json_query){
+/*
+  Designed to only send one at a time, reads from oldest to newest
+ */
+
+static int json_rpc_send_query_block(std::string url){
+	std::string query_data;
 	CURL *curl = curl_easy_init();
-	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_query.c_str());
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, json_query.size());
-	struct curl_slist *headers = NULL;
-	headers = curl_slist_append(headers, "Content-Type: application/json-rpc");
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-	curl_easy_perform(curl);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, json_rpc_curl_writeback);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, nullptr);
-	if(search_for_argv("--debug") != -1 || search_for_argv("--spam") != -1){
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-	}else{
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+	std::vector<std::string> queries_list;
+	LOCK_RUN(queries_lock,
+		print("queries.size():" + std::to_string(queries.size()), P_SPAM);
+		for(unsigned int i = 0;i < queries.size();i++){
+			queries_list.push_back(queries[i].query);
+			queries[i].status = JSON_RPC_QUERY_SENT;
+		});
+	for(unsigned int i = 0;i < queries_list.size();i++){
+		const std::string json_query = queries_list[i];
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_query.c_str());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, json_query.size());
+		struct curl_slist *headers = NULL;
+		curl_slist_append(headers, "Content-Type: application/json-rpc");
+		if(search_for_argv("--debug") != -1 || search_for_argv("--spam") != -1){
+			curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		}else{
+			curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+		}
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+		curl_easy_perform(curl);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, json_rpc_curl_writeback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, nullptr);
+		curl_easy_perform(curl); // json_rpc_curl_writeback has its own lock
+		curl_slist_free_all(headers);
+		headers = NULL;
 	}
-	curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
-	curl_slist_free_all(headers);
-	headers = NULL;
 	curl = NULL;
 	return 0;
 }
@@ -244,55 +280,67 @@ int json_rpc::cmd(std::string method, std::vector<std::string> params, int id, s
 	data += json_set_var("id", id);
 	data = JSON_BRACES(data);
 	print("json_rpc query:"+data, P_DEBUG);
-	json_rpc_send_query("http://"+json_rpc_username+":"+json_rpc_password+"@"+ip+":"+std::to_string(port), data);
+	queries.push_back(json_rpc_query_t(data, id));
+	const int queries_entry = queries.size()-1;
+	json_rpc_send_query_block("http://"+json_rpc_username+":"+json_rpc_password+"@"+ip+":"+std::to_string(port));
+	bool received_response = false;
+	long int starting_time = std::time(nullptr);
+	/*
+	  Safe and reliable to look up query on main thread, because the function
+	  doesn't return until a response is found or a timeout is reached
+	 */
+	while(received_response == false){
+		if(std::time(nullptr)-starting_time == 5){
+			print("json_rpc timeout exceeded, exiting w/o response", P_WARN);
+			break;
+		}
+		LOCK_RUN(queries_lock, if(queries[queries_entry].status != JSON_RPC_QUERY_SENT){
+				print("received response for json_rpc query", P_NOTICE);
+				received_response = true;
+			});
+	}
 	//to_string is pretty safe as it is
 	return 0;
 }
 
-int json_rpc::resp(std::string *result, std::string *error, int id){
+int json_rpc::resp(std::string *result, int *error_code, int id){
 	if(result == nullptr){
 		print("result is nullptr for resp", P_ERR);
 		return -1;
 	}
-	if(error == nullptr){
+	if(error_code == nullptr){
 		print("error is nullptr for resp", P_ERR);
 		return -1;
 	}
-	LOCK_RUN(responses_lock, [](std::string *result, std::string *error, int id){
-			for(unsigned int i = 0;i < responses.size();i++){
-				if(responses[i].id == id){
-					*result = responses[i].result;
-					*error = responses[i].error;
-					responses.erase(responses.begin()+i);
+	*error_code = 0;
+	LOCK_RUN(queries_lock, [](std::string *result, int *error_code, int id){
+			for(unsigned int i = 0;i < queries.size();i++){
+				if(queries[i].id == id){
+					*result = queries[i].result;
+					*error_code = queries[i].error_code;
 				}
 			}
-		}(result, error, id));
-	if(*result != "" && *error != ""){
-		print("json_rpc result for id=" + std::to_string(id) + ":" + *result + " " + *error, P_DEBUG);
+		}(result, error_code, id));
+	if(*result != ""){
+		print("json_rpc result for id=" + std::to_string(id) + ":" + *result + " " + std::to_string(*error_code), P_DEBUG);
 		return 0;
 	}
 	return -1;
 }
 
 int json_rpc::throw_on_error(int id){
-	std::string result, code_str;
-	resp(&result, &code_str, id);
-	int code = 0; // 0 means no error?
-	try{
-		code = std::stoi(code_str);
-	}catch(std::invalid_argument e){
-		print("invalid argument for throw_on_error", P_ERR);
-	}catch(std::out_of_range e){
-		print("out of range for throw_on_error", P_ERR);
-	}catch(...){
-		print("unknown exception for throw_on_error", P_ERR);
+	std::string result;
+	int error_code;
+	resp(&result, &error_code, id);
+	print("json_rpc error code is " + std::to_string(error_code), P_ERR);
+	if(error_code != 0){
+		throw error_code;
 	}
-	print("json_rpc error code is " + std::to_string(code), P_ERR);
-	throw code;
+	return error_code;
 }
 
 int json_rpc::error_check(int id){
-	int retval;
+	int retval = 0;
 	try{
 		throw_on_error(id);
 	}catch(const int e){
@@ -402,4 +450,14 @@ int json_rpc::error_check(int id){
 		print("unknown exception for throw_on_error", P_ERR);
 	}
 	return retval;
+}
+
+json_rpc_query_t::json_rpc_query_t(std::string data, int id_){
+	query = data;
+	id = id_;
+	P_V_S(query, P_DEBUG);
+	P_V(id, P_DEBUG);
+}
+
+json_rpc_query_t::~json_rpc_query_t(){
 }

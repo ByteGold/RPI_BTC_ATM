@@ -61,14 +61,24 @@
   End copy
  */
 
-struct json_rpc_resp_t{
+
+#define JSON_RPC_QUERY_SENT 1 // sent, no errors reported yet
+#define JSON_RPC_QUERY_ERROR 2 // error detected
+#define JSON_RPC_QUERY_OK 3 // no error, should be deleted now
+
+struct json_rpc_query_t{
+	std::string query;
+	int id; // can be derrived from query easily, but there is no need
 	std::string result;
-	std::string error;
-	int id;
+	int error_code;
+	int status;
+	json_rpc_query_t(std::string, int);
+	~json_rpc_query_t();
 };
+
 namespace json_rpc{
 	int cmd(std::string method, std::vector<std::string> params, int id, std::string ip = DEFAULT_NODE_IP, int port = DEFAULT_NODE_PORT);
-	int resp(std::string *result, std::string *error, int id);
+	int resp(std::string *result, int *error, int id);
 	int throw_on_error(int id);
 	int error_check(int id);
 }

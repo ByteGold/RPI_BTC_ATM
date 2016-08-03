@@ -4,9 +4,10 @@
 #include "tx.h"
 #include "json_rpc.h"
 #include "settings.h"
+#include "lock.h"
 
 static std::vector<fee_t> fee;
-static std::mutex fee_lock;
+static lock_t fee_lock;
 
 void deposit::add_fee(fee_t fee_){
 	if(fee_.get_percent() > .25){

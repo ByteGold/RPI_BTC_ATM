@@ -3,13 +3,14 @@
 #include "qr.h"
 #include "file.h"
 #include "settings.h"
+#include "lock.h"
 
 #define DISABLED_QR_STR() if(settings::get_setting("no_qr") == "true"){return "";}
 #define DISABLED_QR_INT() if(settings::get_setting("no_qr") == "true"){return 0;}
 #define DISABLED_QR_VOID() if(settings::get_setting("no_qr") == "true"){return;}
 
 static std::string qr_data = "";
-static std::mutex qr_data_lock;
+static lock_t qr_data_lock;
 static FILE* qr_reader_file_desc = NULL;
 static int qr_run_number_of_lines = 0;
 

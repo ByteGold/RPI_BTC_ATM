@@ -8,13 +8,14 @@
 #include "qr.h"
 #include "deposit.h"
 #include "settings.h"
+#include "lock.h"
 
 bool running = true;
 int argc;
 char **argv;
 
 std::vector<std::thread> threads;
-std::mutex threads_lock;
+lock_t threads_lock;
 
 static std::vector<driver_t*> drivers;
 static long double current_btc_rate = 0;
@@ -22,18 +23,25 @@ static long double current_btc_rate = 0;
 static void init();
 static void terminate_();
 
+static int signal_count = 0;
+
 static void signal_handler(int signal){
 	switch(signal){
 	case SIGTERM:
-		print("Caught signal SIGTERM, terminating", P_NOTICE);
+		std::cout << "Caught signal SIGTERM, terminating" << std::endl;
 		running = false;
+		signal_count++;
 		break;
 	case SIGINT:
-		print("Caught signal SIGINT, terminating", P_NOTICE);
+		std::cout << "Caught signal SIGINT, terminating" << std::endl;
 		running = false;
+		signal_count++;
 		break;
 	default:
 		break; // make this more complex
+	}
+	if(signal_count == 3){
+		throw std::runtime_error("aborting program");
 	}
 }
 
@@ -183,6 +191,7 @@ static int loop(){
 			print("error in tx", P_ERR);
 		}
 	}
+	sleep_ms(1000);
 	return 0;
 }
 

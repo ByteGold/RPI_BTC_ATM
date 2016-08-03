@@ -4,6 +4,7 @@
 #include "json_rpc.h"
 #include "settings.h"
 #include "file.h"
+#include "lock.h"
 
 #define SEND_ID 1
 #define SET_TX_FEE_ID 2
@@ -11,7 +12,7 @@
 #define WALLETLOCK_ID 4
 
 static std::vector<tx_out_t> outputs;
-static std::mutex outputs_lock;
+static lock_t outputs_lock;
 static std::string tx_from_account;
 
 static int read_all_tx_from_disk(){

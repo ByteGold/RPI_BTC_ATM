@@ -10,7 +10,7 @@
 #include "chrono"
 #include "signal.h"
 #include "unistd.h"
-#define DEFAULT_THREAD_SLEEP 10
+#define DEFAULT_THREAD_SLEEP 1000
 // speed isn't an issue
 extern bool running;
 extern int argc;

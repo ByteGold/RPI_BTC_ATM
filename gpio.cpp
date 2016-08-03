@@ -3,12 +3,13 @@
 #include "util.h"
 #include "main.h"
 #include "settings.h"
+#include "lock.h"
 
 #define DISABLED_GPIO() if(settings::get_setting("no_gpio") == "true") return 0;
 
 static int gpio_count = 0;
 static std::vector<gpio_pin_t> gpio_pins;
-static std::mutex gpio_pins_lock;
+static lock_t gpio_pins_lock;
 
 static std::string gen_gpio_val_file(int pin){
 	if(pin > gpio_count || pin < 0){
