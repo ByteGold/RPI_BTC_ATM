@@ -18,13 +18,10 @@ void deposit::add_fee(fee_t fee_){
 			for(unsigned int i = 0;i < fee.size();i++){
 				bool addr = fee[i].get_address() == fee_.get_address();
 				bool perc = fee[i].get_percent() == fee_.get_percent();
-				if(addr){
-					if(perc){
-						break;
-					}else{
-						print("updating fee, old one should have been deleted", P_ERR);
-						fee[i].set_percent(fee_.get_percent());
-					}
+				bool update = addr && !perc;
+				if(update){
+					print("updating fee, old one should have been deleted", P_ERR);
+					fee[i].set_percent(fee_.get_percent());
 				}
 			}
 		}(fee_));
@@ -37,15 +34,15 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
 			for(unsigned int i = 0;i < fee.size();i++){
 				const long double fee_percent = fee[i].get_percent();
 				const satoshi_t fee_size = fee_percent*(*working_satoshi);
-				if(fee_size != 0){
-					if(fee[i].get_address() != ""){
-						tx_out_t tx_tmp(fee[i].get_address(), fee_size);
-						print("adding the fee of " + std::to_string(fee_size) + " satoshi (" + std::to_string(fee_percent) + ") to " + fee[i].get_address(), P_NOTICE);
-						tx::add_tx_out(tx_tmp);
-					}else{
-						print("applying standard fee, not making a transaction", P_NOTICE);
-					}
+				if(fee_size == 0){
+					continue;
 				}
+				if(fee[i].get_address() == ""){
+					continue;
+				}
+				tx_out_t tx_tmp(fee[i].get_address(), fee_size);
+				print("adding the fee of " + std::to_string(fee_size) + " satoshi (" + std::to_string(fee_percent) + ") to " + fee[i].get_address(), P_NOTICE);
+				tx::add_tx_out(tx_tmp);
 				*working_satoshi -= fee_size;
 			}
 		}(&working_satoshi));
@@ -54,6 +51,9 @@ int deposit::send(std::string address, satoshi_t satoshi, int type){
 }
 
 int deposit::init(){
+	/*
+	  TODO: zero-one-infinity this
+	 */
 	const bool fee_1 = settings::get_setting("fee_1_address") != "" && settings::get_setting("fee_1_percent") != "";
 	const bool fee_2 = settings::get_setting("fee_2_address") != "" && settings::get_setting("fee_2_percent") != "";
 	const bool fee_3 = settings::get_setting("fee_3_address") != "" && settings::get_setting("fee_3_percent") != "";

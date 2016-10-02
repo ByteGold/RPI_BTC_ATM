@@ -38,7 +38,7 @@ extern int system_wait_for_file(std::string command, std::string file);
 		std::cerr << "Caught " << e.what() << " in LOCK_RUN" << std::endl; \
 		a.unlock();						\
 		throw e;						\
-	 }								\
+	}								\
 	a.unlock();							\
 	if(search_for_argv("--spam") != -1){ \
 		std::cout << "[SPAM] " << #a << " lock unlocked" << std::endl; \

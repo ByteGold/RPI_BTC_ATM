@@ -170,11 +170,12 @@ static int loop(){
 	bool accepting_money = true;
 	while(accepting_money){
 		for(unsigned int i = 0;i < drivers.size();i++){
-			if(drivers[i]->count != old_count){
-				old_count += drivers[i]->count;
-				LOCK_RUN(drivers[i]->lock, drivers[i]->count = 0);
-				time_since_last_change = std::time(nullptr); // epoch
-			}
+			LOCK_RUN(drivers[i]->lock,
+				 if(drivers[i]->count != old_count){
+					 old_count += drivers[i]->count;
+					 drivers[i]->count = 0;
+					 time_since_last_change = std::time(nullptr); // epoch
+				 });
 		}
 		if(std::time(nullptr)-time_since_last_change >= 5){ // rough estimate
 			print("money deposit timeout reached, depositing the money", P_NOTICE);

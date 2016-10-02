@@ -204,6 +204,9 @@ int tx::init(){
 	threads.emplace_back(std::thread([](){
 				while(running){
 					bool tx_block = false;
+					/*
+					  Sends out transactions in large-ish chunks, should be
+					 */
 					try{
 						tx_block |= outputs.size() >= (unsigned int)std::stoul(settings::get_setting("tx_outputs_until_block"));
 					}catch(std::invalid_argument e){

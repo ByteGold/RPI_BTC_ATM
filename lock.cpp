@@ -16,7 +16,7 @@ void lock_t::lock(){
 	ss << std::this_thread::get_id();
 	ss >> thread_id;
 	const std::string thread_id_str = std::to_string(thread_id);
-	if(prev_state){ // was locked, is currently locked
+	if(prev_state){ // was locked, is currently locking
 		if(same_thread){
 			if(search_for_argv("--spam") != -1){
 				std::cout << "[SPAM] same thread locking twice (hash:" << thread_id_str << ")" << std::endl;
