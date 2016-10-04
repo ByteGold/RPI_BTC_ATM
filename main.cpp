@@ -9,6 +9,7 @@
 #include "deposit.h"
 #include "settings.h"
 #include "lock.h"
+#include "net.h"
 
 bool running = true;
 int argc;
@@ -19,11 +20,10 @@ lock_t threads_lock;
 
 static std::vector<driver_t*> drivers;
 static long double current_btc_rate = 0;
+static int signal_count = 0;
 
 static void init();
 static void terminate_();
-
-static int signal_count = 0;
 
 static void signal_handler(int signal){
 	switch(signal){
@@ -41,6 +41,11 @@ static void signal_handler(int signal){
 		break; // make this more complex
 	}
 	if(signal_count == 3){
+		/*
+		  Guaranteed to always kill the program. I need to call
+		  whatever TX commands are needed to preserve the 
+		  transactions, but I don't know how well the locking
+		 */
 		throw std::runtime_error("aborting program");
 	}
 }
@@ -58,8 +63,8 @@ static void init(){
 		exit(0);
 	}
 	settings::set_settings();
-	// periodically rgrep with '::init(){" just to make sure I covered all of the
-	// bases. I don't want to make them variables at this point in time
+	// periodically rgrep with '::init(){" just to make sure I covered all
+	// the bases. I don't want to make them variables at this point in time
 	tx::init();
 	gpio::init();
 	qr::init();
@@ -148,11 +153,11 @@ static void terminate_(){
 }
 
 static void test_code(){
-	//JSON works fine (I think)
-	// send this to the donation wallet
-	//tx::add_tx_out(tx_out_t("1ATM4eFZxJMNfb7XSRoVYW5YSQ3xCPXCNs", 50000));
-	json_rpc::cmd("walletlock", {}, 420);
-	json_rpc::error_check(420);
+	while(running){
+		const std::string cache_btc_price = net::get("https://blockchain.info/q/24hrprice", 1);
+		std::cout << "BTC price:" << cache_btc_price << std::endl;
+		sleep_ms(100);
+	}
 }
 
 static int loop(){

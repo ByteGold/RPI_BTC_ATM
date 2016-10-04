@@ -89,11 +89,9 @@ int ch_926_run(int *count){
 		std::cin >> pulse_count_input;
 		try{
 			pulse_count = std::stol(pulse_count_input);
-		}catch(std::invalid_argument e){
-			print("invalid argument, setting to zero", P_ERR);
+		}catch(std::exception e){
+			pre_pro::exception(e, "pulse_count_input", P_ERR);
 			pulse_count = 0;
-		}catch(std::out_of_range){
-			print("pulse count is out of range, setting to zero", P_ERR);
 		}
 	}else if(gpio::get_val(gpio_pins[CH_926_GPIO_IN]) != 0){
 		pulse_count++;
@@ -114,10 +112,8 @@ int ch_926_run(int *count){
 	try{
 		*count += value_table->at(pulse_count);
 		print("added " + std::to_string(value_table->at(pulse_count)) +" to count", P_NOTICE);
-	}catch(std::out_of_range e){
-		print("out of range for pulse_count", P_ERR);
-	}catch(...){
-		print("unknown exception for pulse_count", P_ERR);
+	}catch(std::exception e){
+		pre_pro::exception(e, "pulse_count", P_ERR);
 	}
 	return 0;
 }

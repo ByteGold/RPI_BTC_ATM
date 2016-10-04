@@ -1,3 +1,8 @@
+/*
+  TODO: Scracth almost all of this code and replace it with a bitcoin library
+  like libbitcoin or cbitcoin. Running a node, even an SPV, is pretty 
+  taxing and un-needed, especially on metered connections
+ */
 #include "main.h"
 #include "tx.h"
 #include "util.h"

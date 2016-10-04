@@ -2,6 +2,7 @@
 #include "util.h"
 #include "file.h"
 #include "lock.h"
+#include "net.h"
 
 int print_level = -1;
 
@@ -47,8 +48,8 @@ static std::string print_level_text(int level){
 
 lock_t print_lock;
 
-void print(std::string data, int level){
-	LOCK_RUN(print_lock, [](std::string data, int level){
+void print(std::string data, int level, const char *func){
+	LOCK_RUN(print_lock, [&](){
 			if(print_level == -1){
 				if(search_for_argv("--debug") != -1){
 					print_level = P_DEBUG;
@@ -59,13 +60,19 @@ void print(std::string data, int level){
 				}
 			}
 			if(level >= print_level){
-				std::cout << print_level_text(level) << " " << data << std::endl;
+				std::string func_;
+				if(func != nullptr){
+					func_ = func;
+				}
+				std::cout << print_level_text(level) << " ";
+				std::cout << func_ << " ";
+				std::cout << data << std::endl;
 			}
 			if(level == P_CRIT){
 				std::cerr << "CRITICAL ERROR" << std::endl;
 				throw std::runtime_error(data);
 			}
-		}(data, level));
+		}());
 }
 
 long double get_btc_rate(std::string currency){
@@ -150,4 +157,12 @@ long double get_mul_to_btc(std::string currency){
 		throw std::logic_error("mul < 0");
 	}
 	return mul;
+}
+
+void pre_pro::unable(std::string from, std::string to, int level){
+	print("unable to get " + to + " from " + from,  level);
+}
+
+void pre_pro::exception(std::exception e, std::string for_, int level){
+	print((std::string)e.what() + " for " + for_, level); 
 }
