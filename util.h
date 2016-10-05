@@ -18,6 +18,7 @@
 #include "iostream"
 #include "execinfo.h"
 #include "sstream"
+#include "vector"
 extern void sleep_ms(int ms, bool force = false);
 extern int search_for_argv(std::string);
 extern std::string get_argv(int a);
@@ -27,6 +28,8 @@ extern long double get_btc_rate(std::string currency);
 extern int system_(std::string str);
 extern int system_write(std::string command, std::string file);
 extern int system_wait_for_file(std::string command, std::string file);
+extern std::string system_cmd_output(std::string cmd);
+extern std::vector<std::string> newline_to_vector(std::string data);
 #define LOCK_RUN(a, b)							\
 	a.lock();							\
 	if(search_for_argv("--spam") != -1){ \

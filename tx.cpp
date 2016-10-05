@@ -21,10 +21,10 @@ static lock_t outputs_lock;
 static std::string tx_from_account;
 
 static int read_all_tx_from_disk(){
-	system_write("find tx | grep '\\.'", "output");
-	std::stringstream ss(file::read_file("output"));
-	std::string tmp;
-	while(std::getline(ss, tmp)){
+	std::vector<std::string> data = newline_to_vector(
+		system_cmd_output("find tx | grep '\\.'"));
+	for(unsigned int i = 0;i < data.size();i++){
+		const std::string tmp = data.at(i);
 		bool valid_addr = false;
 		bool valid_sat = false;
 		bool valid_id = false;

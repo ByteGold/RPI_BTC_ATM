@@ -3,15 +3,37 @@
 #include "file.h"
 #include "lock.h"
 #include "net.h"
+#include "settings.h"
 
 int print_level = -1;
+
+std::vector<std::string> newline_to_vector(std::string data){
+	std::vector<std::string> retval;
+	unsigned long int old_pos = 0;
+	for(unsigned int i = 0;i < data.size();i++){
+		if(data[i] == '\n'){
+			const std::string tmp =
+				data.substr(old_pos, i);
+			old_pos = i+1; // skip newline
+			retval.push_back(tmp);
+		}
+	}
+	return retval;
+
+}
 
 void sleep_ms(int ms, bool force){
 	if(force){
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}else{
 		for(int i = 0;i < ms;i++){
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			/*
+			  when the program needs to quit quickly for whatever
+			  reason, this stops the sleep and lets the program run.
+			  maybe it should throw an exception?
+			 */
+			const auto sleep_time = std::chrono::milliseconds(1);
+			std::this_thread::sleep_for(sleep_time);
 			if(running == false){
 				return;
 			}
@@ -75,23 +97,32 @@ void print(std::string data, int level, const char *func){
 		}());
 }
 
+/*
+  Should I use a real-time currency conversion API or just use different basic
+  APIs like this for each currency? I guess this is good enough until this has
+  some major adoption, or at least interest, because adoption can be hindered.
+ */
+
 long double get_btc_rate(std::string currency){
-	// 3 character code
 	if(currency == "USD" || currency == "usd"){
-		system_wait_for_file("touch 24hrprice && rm -r 24hrprice && wget -q https://blockchain.info/q/24hrprice", "24hrprice");
-		long double price;
+		int stale_time = 30; // good baseline
 		try{
-			price = std::stold(file::read_file("24hrprice"));
-		}catch(std::invalid_argument e){
-			print("invalid argument for get_btc_rate", P_ERR);
-		}catch(std::out_of_range e){
-			print("out of range for get_btc_rate", P_ERR);
-		}catch(...){
-			print("unknown exception for get_btc_rate", P_ERR);
+			const std::string stale_str = 
+				settings::get_setting("btc_rate_stale_time");
+			stale_time = std::stoi(stale_str);
+		}catch(std::exception e){
+			pre_pro::exception(e, "get_btc_rate_settings", P_ERR);
 		}
-		print("the price is " + std::to_string(price) + " per BTC", P_NOTICE);
-		system_("touch 24hrprice && rm -r 24hrprice");
-		return price;
+		const std::string str =
+			net::get("https://blockchain.info/q/24hrprice",
+				stale_time);
+		long double retval = 0;
+		try{
+			retval = std::stold(str);
+		}catch(std::exception e){
+			pre_pro::exception(e, "get_btc_rate", P_ERR);
+		}
+		return retval;
 	}else{
 		print("your plebian currency isn't supported yet", P_CRIT);
 		return 0; // complains about no retval
@@ -103,7 +134,6 @@ int system_(std::string str){
 	/*
 	  Most commands need some time to be processed on the lower level (GPIO).
 	  Speed shouldn't be a problem
-	  
 	  Possibly append ';touch finished' and wait for the file?
 	*/
 	int retval = system(str.c_str());
@@ -125,6 +155,19 @@ int system_wait_for_file(std::string command, std::string file){
 		sleep_ms(1);
 	}
 	return retval;
+}
+
+/*
+  I heard some bad things about the C-way of getting
+  command output, so this seems like the best way to pipe
+  it into a variable
+ */
+
+std::string system_cmd_output(std::string cmd){
+	system_write(cmd, "TMP_OUT");
+	const std::string file_data = file::read_file("TMP_OUT");
+	system_("rm TMP_OUT");
+	return file_data;
 }
 
 static std::string to_lower(std::string a){

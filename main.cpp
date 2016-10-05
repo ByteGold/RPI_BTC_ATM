@@ -19,7 +19,6 @@ std::vector<std::thread> threads;
 lock_t threads_lock;
 
 static std::vector<driver_t*> drivers;
-static long double current_btc_rate = 0;
 static int signal_count = 0;
 
 static void init();
@@ -83,25 +82,16 @@ static void init(){
 	for(unsigned int i = 0;i < drivers.size();i++){
 		drivers[i]->init();
 	}
+	// doesn't need the lock, haven't built a function that handles
+	// functions with commas or other special characters
 	threads.emplace_back(std::thread([](){
-				while(running){
-					for(unsigned int i = 0;i < drivers.size();i++){
-						LOCK_RUN(drivers[i]->lock, drivers[i]->run(&drivers[i]->count));
-					}
-					sleep_ms(DEFAULT_THREAD_SLEEP);
-				}
-			}));
-	threads.emplace_back(std::thread([](){
-				while(running){
-					try{
-						current_btc_rate = get_btc_rate(settings::get_setting("currency"));
-					}catch(...){
-						print("error in updating the price, probably downtime", P_ERR);
-					}
-					sleep_ms(30*1000);
-					// I don't want to get the ATM banned, so don't speed it up
-				}
-			}));
+		while(running){
+			for(unsigned int i = 0;i < drivers.size();i++){
+				LOCK_RUN(drivers[i]->lock, drivers[i]->run(&drivers[i]->count));
+			}
+			sleep_ms(DEFAULT_THREAD_SLEEP);
+		}
+	}));
 }
 
 static void terminate_(){
@@ -133,7 +123,7 @@ static void terminate_(){
 					}
 					throw e;
 				}catch(std::exception e){
-					print("unknown exception for threads", P_ERR);
+					pre_pro::exception(e, "thread_join", P_ERR);
 					throw e;
 				}
 			}
@@ -148,15 +138,12 @@ static void terminate_(){
 	gpio::close();
 	qr::close();
 	deposit::close();
-	system_("touch 24hrprice && rm -r 24hrprice"); // touch for no errors
-	system_("touch output && rm -r output");
 }
 
 static void test_code(){
 	while(running){
-		const std::string cache_btc_price = net::get("https://blockchain.info/q/24hrprice", 1);
-		std::cout << "BTC price:" << cache_btc_price << std::endl;
-		sleep_ms(100);
+		std::cout << "OUTPUT:" << system_cmd_output("echo hello")
+			  << std::endl;
 	}
 }
 
