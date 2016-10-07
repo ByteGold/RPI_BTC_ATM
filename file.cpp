@@ -76,3 +76,9 @@ void file::write(std::string file, std::string data){
 std::string file::read(std::string file){
 	return read_file(file);
 }
+
+void file::wait_for_file(std::string file){
+	while(exists(file) == false){
+		sleep_ms(1);
+	}
+}

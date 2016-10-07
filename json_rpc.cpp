@@ -303,6 +303,8 @@ int json_rpc::cmd(std::string method, std::vector<std::string> params, int id, s
 	return 0;
 }
 
+// -1 on not available yet (completely)
+// 0 on success
 int json_rpc::resp(std::string *result, int *error_code, int id){
 	if(result == nullptr){
 		print("result is nullptr for resp", P_ERR);

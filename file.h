@@ -12,5 +12,6 @@ namespace file{
 	bool exists(std::string file);
 	void write(std::string file, std::string data);
 	std::string read(std::string file);
+	void wait_for_file(std::string file);
 }
 #endif

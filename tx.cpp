@@ -11,10 +11,12 @@
 #include "file.h"
 #include "lock.h"
 
+// JSON commands, probably isn't needed
 #define SEND_ID 1
 #define SET_TX_FEE_ID 2
 #define WALLETPASSPHRASE_ID 3
 #define WALLETLOCK_ID 4
+
 
 static std::vector<tx_out_t> outputs;
 static lock_t outputs_lock;
@@ -22,7 +24,7 @@ static std::string tx_from_account;
 
 static int read_all_tx_from_disk(){
 	std::vector<std::string> data = newline_to_vector(
-		system_cmd_output("find tx | grep '\\.'"));
+		system_handler::cmd_output("find tx | grep '\\.'"));
 	for(unsigned int i = 0;i < data.size();i++){
 		const std::string tmp = data.at(i);
 		bool valid_addr = false;
@@ -53,13 +55,13 @@ static int read_all_tx_from_disk(){
 			valid_sat = false;
 		}
 		if(valid_addr && valid_id && valid_sat){
-			system_("rm -r " + tmp);
+			system_handler::run("rm -r " + tmp);
 		}
 		if(satoshi != 0 && address != ""){
 			tx::add_tx_out(tx_out_t(address, satoshi, tx_id));
 		}
 	}
-	system_("rm -r output");
+	system_handler::run("rm -r output");
 	return 0;
 }
 
@@ -78,129 +80,147 @@ int tx::add_tx_out(tx_out_t transaction){
 	return 0;
 }
 
-static int auto_set_tx_fee(){
-	int fee_size = 5500;
-	if(settings::get_setting("tx_fixed_fee") == ""){
-		fee_size = (75*50)*(outputs.size()+2);
-	}else{
-		try{
-			fee_size = std::stoi(settings::get_setting("fixed_fee"));
-		}catch(std::invalid_argument e){
-			print("invalid argument for fixed_fee", P_ERR);
-		}catch(std::out_of_range e){
-			print("out of range for fixed_fee", P_ERR);
-		}catch(...){
-			print("unknown exception for fixed_fee", P_ERR);
-		}
-		print("setting fee to custom fee of " + std::to_string(fee_size), P_DEBUG);
-	}
-	json_rpc::cmd("settxfee", {std::to_string(get_mul_to_btc("satoshi")*fee_size)}, SET_TX_FEE_ID);
-	return fee_size;
-}
-
-int tx::send_transaction_block(){
-	std::function<void(void)> e = [](){
-		// TODO: unlock the wallet for a second or two
-		if(settings::get_setting("tx_wallet_passphrase") != ""){
-			json_rpc::cmd("walletpassphrase", {settings::get_setting("tx_wallet_passphrase"), "10"}, WALLETPASSPHRASE_ID);
-			
-		} // only locked so delays don't count towards the timeout
-		try{
-			int fee = auto_set_tx_fee();
-			long double fee_btc = get_mul_to_btc("satoshi")*fee;
-			print("transaction fee is " + std::to_string(fee_btc) + " BTC", P_NOTICE);
-			if(fee_btc*get_btc_rate("USD") > .50){
-				print("transaction fee is too high, setting sane setting, force with --force-fee", P_ERR);
-				fee = .25/get_btc_rate("USD");
-				fee_btc = get_mul_to_btc("satoshi")*fee;
-			}
-			if(outputs.size() == 1){
-				print("one output, using sendtoaddress", P_DEBUG);
-				const long double tx_vol_btc = get_mul_to_btc("satoshi")*outputs[0].get_satoshi();
-				json_rpc::cmd("sendtoaddress", {outputs[0].get_address(), std::to_string(tx_vol_btc)}, SEND_ID);
-				outputs.clear();
-			}else{
-				print("multiple outputs, using sendmany", P_DEBUG);
-				if(settings::get_setting("tx_simplify_outputs") == "true"){
-					const int outputs_size = outputs.size();
-					print("simplifying tx outputs", P_DEBUG);
-					std::vector<std::pair<std::string, satoshi_t> > address_lookup;
+static std::vector<std::pair<std::string, satoshi_t> > tx_send_all_simplify(){
+	std::vector<std::pair<std::string, satoshi_t> > output_actual;
+	auto function = [&](){
+				try{
 					for(unsigned int i = 0;i < outputs.size();i++){
-						bool found_address = false;
-						for(unsigned int c = 0;c < address_lookup.size();c++){
-							const std::string addr_1 = address_lookup[c].first;
-							const std::string addr_2 = outputs[i].get_address();
-							if(addr_1 == addr_2){
-								address_lookup[c].second += outputs[i].get_satoshi();
-								found_address = true;
+						const satoshi_t output_sat =
+							outputs[i].get_satoshi();
+						const std::string output_addr =
+							outputs[i].get_address();
+						bool found = false;
+						for(unsigned int c = 0;c < output_actual.size();c++){
+							const std::string actual_addr =
+								output_actual[c].first;
+							if(actual_addr == output_addr){
+								output_actual[c].second +=
+									outputs[i].get_satoshi();
+								found = true;
 								break;
 							}
 						}
-						if(found_address == false){
-							address_lookup.push_back(std::make_pair(outputs[i].get_address(), outputs[i].get_satoshi()));
+						if(!found){
+							const std::pair<std::string, satoshi_t> actual_pair =
+								std::make_pair(output_addr,
+									       output_sat);
+							output_actual.push_back(
+								actual_pair);
 						}
 					}
-					outputs.clear();
-					for(unsigned int i = 0;i < address_lookup.size();i++){
-						outputs.push_back(tx_out_t(address_lookup[i].first, address_lookup[i].second));
-					}
-					print("changed output size from " + std::to_string(outputs_size) + " to " + std::to_string(outputs.size()), P_DEBUG);
+				}catch(std::exception e){
+					pre_pro::exception(
+						e,
+						"tx_send_all_simplify"
+						, P_ERR);
+					throw e;
 				}
-				satoshi_t tx_vol_until_block = 0; // TODO: set sane defaults
-				unsigned int tx_out_until_block = 0;
-				try{
-					tx_vol_until_block = std::stoi(settings::get_setting("tx_vol_until_block"));
-				}catch(std::invalid_argument e){
-					print("invalid argument for tx_vol_until_block", P_ERR);
-				}catch(std::out_of_range e){
-					print("out of range for tx_vol_until_block", P_ERR);
-				}catch(...){
-					print("unknown exception for tx_vol_until_block", P_ERR);
-				}
-				try{
-					tx_out_until_block = std::stoi(settings::get_setting("tx_out_until_block"));
-				}catch(std::invalid_argument e){
-					print("invalid argument for tx_out_until_block", P_ERR);
-				}catch(std::out_of_range e){
-					print("out of range for tx_out_until_block", P_ERR);
-				}catch(...){
-					print("unknown exception for tx_out_until_block", P_ERR);
-				}
-				satoshi_t total_volume = 0;
-				for(unsigned int i = 0;i < outputs.size();i++){
-					total_volume += outputs[i].get_satoshi();
-				}
-				const bool enough_volume = total_volume >= tx_vol_until_block;
-				const bool enough_outputs = outputs.size() >= tx_out_until_block;
-				if(enough_volume && enough_outputs){
-					std::string custom_tx_string;
-					for(unsigned int i = 0;i < outputs.size();i++){
-						const satoshi_t val = outputs[i].get_satoshi();
-						const long double val_btc = val*get_mul_to_btc("satoshi");
-						custom_tx_string += outputs[i].get_address() + ":" + std::to_string(val_btc);
-						if(i+1 < outputs.size()){
-							custom_tx_string += ",";
-						}
-					}
-					outputs.clear();
-					custom_tx_string = JSON_BRACES(custom_tx_string);
-					json_rpc::cmd("sendmany", {tx_from_account, custom_tx_string}, SEND_ID);
-				}else{
-					print("not enough money transacted in block to warrant transmitting, waiting", P_DEBUG);
-				}
+				outputs.clear();
+			};
+	try{
+		LOCK_RUN(outputs_lock, function());
+	}catch(std::exception e){
+		pre_pro::exception(e, "tx_send_all_simplify", P_ERR);
+		throw e;
+	}
+	return output_actual;
+}
+
+static std::vector<std::pair<std::string, std::vector<std::string> > >
+tx_send_all_gen_json_commands(
+	std::vector<std::pair<std::string, satoshi_t> > simple){
+	std::vector<std::pair<std::string, std::vector<std::string> > > retval;
+	std::string wallet_passphrase;
+	// unlock the wallet, no specified time limit (yet)
+	try{
+		wallet_passphrase = settings::get_setting(
+			"tx_wallet_passphrase");
+	}catch(std::exception e){
+		pre_pro::exception(e, "wallet_passphrase", P_ERR);
+		throw e;
+	}
+	try{
+		retval.push_back(
+			std::make_pair("walletpassphrase",
+				       std::vector<std::string>(
+				       {wallet_passphrase})));
+	}catch(std::exception e){
+		pre_pro::exception(e, "tx_wallet_passphrase", P_ERR);
+		throw e;
+	}
+	// sendmany
+	try{
+		std::string custom_tx_string;
+		for(unsigned int i = 0;i < simple.size();i++){
+			const satoshi_t val = simple[i].second;
+			const long double val_btc = val*get_mul_to_btc("satoshi");
+			custom_tx_string +=
+				simple[i].first + ":" + std::to_string(val_btc);
+			if(i+1 < outputs.size()){
+				custom_tx_string += ",";
 			}
-		}catch(std::exception e){
-			print("unable to send transaction block (" + (std::string)e.what() + "), LOOK INTO THIS AND MAKE PROPER EXCEPTIONS", P_ERR);
 		}
-		try{
-			json_rpc::throw_on_error(SEND_ID);
-		}catch(...){
+		custom_tx_string = JSON_BRACES(custom_tx_string);
+		retval.push_back(
+			std::make_pair("sendmany",
+				       std::vector<std::string>(
+				       {custom_tx_string})));
+	}catch(std::exception e){
+		pre_pro::exception(e, "tx_send_all adding txs", P_ERR);
+		throw e;
+	}
+	// lock the wallet again
+	retval.push_back(
+		std::make_pair("walletlock",
+			       std::vector<std::string>({})));
+	return retval;
+}
+
+static void tx_send_all_json_batch(
+	std::vector<std::pair<std::string, std::vector<std::string> > > json_){
+	for(unsigned int i = 0;i < json_.size();i++){
+		int error_code = 0;
+		std::string result;
+		json_rpc::cmd(json_[i].first, json_[i].second, i);
+		while(json_rpc::resp(&result, &error_code, i) == -1){
+			sleep_ms(1000);
+			// waiting is important
 		}
-		if(settings::get_setting("tx_wallet_passphrase") != ""){
-			json_rpc::cmd("walletlock", {}, WALLETLOCK_ID);
+		if(json_rpc::error_check(error_code) != 0){
+			throw std::runtime_error("tx::send_all JSON");
 		}
-	};
-	LOCK_RUN(outputs_lock, e());
+	}
+
+}
+
+int tx::send_all(){
+	std::vector<std::pair<std::string, satoshi_t> > simple;
+	try{
+		simple = tx_send_all_simplify();
+	}catch(std::exception e){
+		pre_pro::exception(e, "tx_send_all_simplify", P_ERR);
+		throw e;
+	}
+	std::vector<std::pair<std::string, std::vector<std::string> > > json_ =
+		tx_send_all_gen_json_commands(simple);
+	try{
+		//throws runtime_error on JSON API errors
+		tx_send_all_json_batch(json_);
+	}catch(std::exception e){
+		pre_pro::exception(e, "tx_send_all_json_batch", P_ERR);
+		throw e;
+	}
+	/*
+	  I probably shouldn't delete txs, but instead record them
+	  in a new data type filled with the tx_out_t structures and
+	  associate that with a blockchain ID so there is a verifiable
+	  and recordable history?
+	 */
+	LOCK_RUN(outputs_lock, outputs.clear());
+	
+	// any other errors should be reported through the JSON API
+	// move checks for actual run outside of this function, makes
+	// overriding them for whatever reason a lot easier
 	return 0;
 }
 
@@ -227,7 +247,7 @@ int tx::init(){
 						print("out of range for volume_until_block", P_ERR);
 					}
 					if(tx_block){
-						tx::send_transaction_block();
+						tx::send_all();
 					}
 					sleep_ms(DEFAULT_THREAD_SLEEP);
 				}
@@ -277,7 +297,7 @@ tx_out_t::tx_out_t(std::string address_, satoshi_t satoshi_, unsigned long long 
 }
 
 tx_out_t::~tx_out_t(){
-	system_("rm -r " + get_filename());
+	system_handler::run("rm -r " + get_filename());
 	satoshi = 0;
 	address = "";
 }

@@ -29,13 +29,21 @@ void settings::set_settings(std::string settings_file){
 			continue; // no variable or otherwise indecipherable
 		}
 		char var_print[1024];
-		if(get_setting("hide_values") == "true"){
+		bool hide_values = false;
+		try{
+			const std::string hide_values_str =
+				get_setting("hide_values");
+			hide_values = hide_values_str == "true";
+		}catch(...){
+			hide_values = false;
+		}
+		if(hide_values){
 			memset(var_print, 0, 1024);
 			memset(var_print, '*', strlen(var));
 		}else{
 			memcpy(var_print, var, 512);
 		}
-		print("setting" + (std::string)setting + " == " + var_print,
+		print("setting " + (std::string)setting + " == " + var_print,
 		      P_DEBUG);
 		if(memcmp(setting, "import", 6) == 0){
 			print("importing external file", P_NOTICE);
@@ -52,15 +60,23 @@ void settings::set_settings(std::string settings_file){
 // no way to tell a blank string from no setting, seems like good
 // default behavior, but code should be secure enough to allow for
 // a thrown exception, most values are stored as integers anyways
+
 std::string settings::get_setting(std::string setting){
 	std::string retval;
+	bool found = false;
 	print("requesting setting " + setting, P_SPAM);
-	LOCK_RUN(settings_lock, [](std::string *retval, std::string setting){
+	LOCK_RUN(settings_lock, [&](){
 			for(unsigned int i = 0;i < settings_vector.size();i++){
 				if(settings_vector[i].first == setting){
-					*retval = settings_vector[i].second;
+					retval = settings_vector[i].second;
+					found = true;
+					// don't break, later values can
+					// override previous values
 				}
 			}
-		}(&retval, setting));
+		}());
+	if(!found){
+		throw std::runtime_error("setting " + setting + " not found");
+	}
 	return retval;
 }

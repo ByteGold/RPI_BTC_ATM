@@ -5,6 +5,11 @@
 #include "settings.h"
 #include "lock.h"
 
+/*
+  I need to change this so it isn't so reliant on bash and external
+  programs, and more on C++ libraries, but it works last time I checked.
+ */
+
 #define DISABLED_QR_STR() if(settings::get_setting("no_qr") == "true"){return "";}
 #define DISABLED_QR_INT() if(settings::get_setting("no_qr") == "true"){return 0;}
 #define DISABLED_QR_VOID() if(settings::get_setting("no_qr") == "true"){return;}
@@ -61,14 +66,9 @@ int qr::init(){
 
 int qr::gen(std::string str, std::string file){
 	DISABLED_QR_INT();
-	system_(("echo \""+ str +"\" | qr > " + file).c_str());
+	system_handler::run(("echo \""+ str +"\" | qr > " + file).c_str());
+	
 	return 0;
-}
-
-std::string qr::read(std::string file){
-	DISABLED_QR_STR();
-	std::string retval = file::read_file(file);
-	return retval;
 }
 
 std::string qr::read_from_webcam(){

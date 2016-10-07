@@ -81,7 +81,7 @@ int ch_926_close(){
   If the pulses don't match up properly, make sure it has been grounded well
 */
 
-int ch_926_run(int *count){
+int ch_926_run(uint64_t *count){
 	long int pulse_count = 0;
 	if(settings::get_setting("ch_926_debug") == "true"){
 		std::cout << "pulse count:";

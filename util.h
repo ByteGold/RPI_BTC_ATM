@@ -25,11 +25,8 @@ extern std::string get_argv(int a);
 extern void print(std::string data, int level, const char *func = nullptr);
 extern long double get_mul_to_btc(std::string currency);
 extern long double get_btc_rate(std::string currency);
-extern int system_(std::string str);
-extern int system_write(std::string command, std::string file);
-extern int system_wait_for_file(std::string command, std::string file);
-extern std::string system_cmd_output(std::string cmd);
 extern std::vector<std::string> newline_to_vector(std::string data);
+#define HANG() while(true){sleep_ms(1000);}
 #define LOCK_RUN(a, b)							\
 	a.lock();							\
 	if(search_for_argv("--spam") != -1){ \
@@ -53,6 +50,12 @@ extern std::vector<std::string> newline_to_vector(std::string data);
 namespace pre_pro{
 	void unable(std::string from, std::string to, int level);
 	void exception(std::exception e, std::string for_, int level);
+};
+
+namespace system_handler{
+	std::string cmd_output(std::string cmd);
+	int run(std::string str);
+	void write(std::string cmd, std::string file);
 };
 // print var
 #define P_V(a, b) print((std::string)#a + " == '" + std::to_string(a) + "'", b)

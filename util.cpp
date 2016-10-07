@@ -86,9 +86,8 @@ void print(std::string data, int level, const char *func){
 				if(func != nullptr){
 					func_ = func;
 				}
-				std::cout << print_level_text(level) << " ";
-				std::cout << func_ << " ";
-				std::cout << data << std::endl;
+				std::cout << print_level_text(level) << " "
+					  << " " << data << std::endl;
 			}
 			if(level == P_CRIT){
 				std::cerr << "CRITICAL ERROR" << std::endl;
@@ -129,7 +128,7 @@ long double get_btc_rate(std::string currency){
 	}
 }
 
-int system_(std::string str){
+int system_handler::run(std::string str){
 	print("system: " + str, P_DEBUG);
 	/*
 	  Most commands need some time to be processed on the lower level (GPIO).
@@ -141,32 +140,22 @@ int system_(std::string str){
 	return retval;
 }
 
-int system_write(std::string command, std::string file){
-	int retval = system_(command + " > " + file);
-	while(file::exists(file) == false){
-		sleep_ms(1);
-	}
-	return retval;
-}
-
-int system_wait_for_file(std::string command, std::string file){
-	int retval = system_(command);
-	while(file::exists(file) == false){
-		sleep_ms(1);
-	}
-	return retval;
-}
-
 /*
   I heard some bad things about the C-way of getting
   command output, so this seems like the best way to pipe
   it into a variable
  */
 
-std::string system_cmd_output(std::string cmd){
-	system_write(cmd, "TMP_OUT");
+
+void system_handler::write(std::string cmd, std::string file){
+	run(cmd + " > " + file);
+	file::wait_for_file(file);
+}
+
+std::string system_handler::cmd_output(std::string cmd){
+	write(cmd, "TMP_OUT");
 	const std::string file_data = file::read_file("TMP_OUT");
-	system_("rm TMP_OUT");
+	run("rm TMP_OUT");
 	return file_data;
 }
 
