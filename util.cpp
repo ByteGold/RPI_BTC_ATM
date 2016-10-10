@@ -72,7 +72,9 @@ lock_t print_lock;
 
 void print(std::string data, int level, const char *func){
 	LOCK_RUN(print_lock, [&](){
-			if(print_level == -1){
+			if(argc == 0){
+				print_level = P_SPAM; // initializers
+			}else if(print_level == -1){
 				if(search_for_argv("--debug") != -1){
 					print_level = P_DEBUG;
 				}else if(search_for_argv("--spam") != -1){
